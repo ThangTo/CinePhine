@@ -4,7 +4,7 @@ import { useTheme } from "contexts/ThemeContext";
 import { FiCheck, FiLoader, FiSettings, FiLayout, FiCpu, FiExternalLink, FiSave } from "react-icons/fi";
 
 const AdminSettingsTab = () => {
-  const { allThemes } = useTheme();
+  const { allThemes, applySavedTheme } = useTheme();
   const [currentTheme, setCurrentTheme] = useState("default");
   const [colabUrl, setColabUrl] = useState("");
   const [featurePermissions, setFeaturePermissions] = useState({
@@ -51,6 +51,7 @@ const AdminSettingsTab = () => {
       setSaving(true);
       setMessage({ type: "", text: "" });
       await settingsAPI.setTheme(themeName);
+      applySavedTheme(themeName);
       setCurrentTheme(themeName);
       setMessage({ type: "success", text: "Đã cập nhật theme thành công!" });
       setTimeout(() => setMessage({ type: "", text: "" }), 3000);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import apiRequest from "services/utils/apiRequest";
 
 /**
@@ -153,23 +153,31 @@ export const ThemeProvider = ({ children }) => {
     return saved === null ? true : saved === "true";
   });
   const [loading, setLoading] = useState(true);
+  const themeRevision = useRef(0);
+
+  const applySavedTheme = useCallback((themeName) => {
+    if (!Object.prototype.hasOwnProperty.call(themes, themeName)) return;
+    themeRevision.current += 1;
+    setServerTheme(themeName);
+  }, []);
 
   // Load theme from server on mount
   useEffect(() => {
     const loadTheme = async () => {
+      const revision = themeRevision.current;
       try {
         // Try to load theme from server (public endpoint)
         const response = await apiRequest("/movies/meta/theme", {
           requiresAuth: false, // Public endpoint
         });
         const theme = response.theme || response.data?.theme;
-        if (theme && themes[theme]) {
+        if (revision === themeRevision.current && theme && themes[theme]) {
           setServerTheme(theme);
         }
       } catch (error) {
         console.warn("Failed to load theme from server, using default:", error);
         // Fallback to default if server fails
-        setServerTheme("default");
+        if (revision === themeRevision.current) setServerTheme("default");
       } finally {
         setLoading(false);
       }
@@ -200,6 +208,7 @@ export const ThemeProvider = ({ children }) => {
     serverTheme, // Theme từ server (để kiểm tra có hiển thị nút hay không)
     isThemeEnabled,
     toggleTheme,
+    applySavedTheme,
     allThemes,
     loading,
   };

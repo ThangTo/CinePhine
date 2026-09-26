@@ -16,7 +16,7 @@ const notificationService = require('./notification.service');
 const analyticsService = require('./analytics.service');
 const coinLedgerService = require('./coinLedger.service');
 const premiumService = require('./premium.service');
-const { invalidateMovieCache } = require('../middleware/cache.middleware');
+const { invalidateMovieCache, clearCache } = require('../middleware/cache.middleware');
 const { parseEpisodeNumber } = require('../utils/movieTransformer');
 const { extractEpisodeNumber } = require('../utils/episodeNumber.util');
 const { crawlMovieBySlug } = require('./crawler.service');
@@ -944,7 +944,9 @@ const getTheme = async () => {
  * @returns {Promise<Object>} Updated setting
  */
 const setTheme = async (themeName) => {
-  return await setSetting('theme', themeName, 'Global theme for the website');
+  const setting = await setSetting('theme', themeName, 'Global theme for the website');
+  await clearCache('cache:/api/v1/movies/meta/theme*');
+  return setting;
 };
 
 // ─── Pricing Service ──────────────────────────────────────────────────────────
