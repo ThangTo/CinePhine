@@ -63,14 +63,14 @@ export const themes = {
     name: "christmas",
     displayName: "Giáng Sinh",
     colors: {
-      primary: "#dc2626", // Red
-      primaryHover: "#b91c1c",
-      background: "#0a0f1a", // Dark blue background
-      surface: "#1a1f2e",
+      primary: "#dfc38b", // Champagne
+      primaryHover: "#f1dbad",
+      background: "#10191a",
+      surface: "#192724",
       text: "#ffffff",
-      textSecondary: "#cbd5e1",
-      border: "#334155",
-      accent: "#22c55e", // Green
+      textSecondary: "#c3cdc5",
+      border: "#34483f",
+      accent: "#577b66", // Evergreen
     },
     decorations: {
       enabled: true,
@@ -146,6 +146,9 @@ export const detectThemeByDate = () => {
  * ThemeProvider - Wraps the app and provides theme context
  */
 export const ThemeProvider = ({ children }) => {
+  const previewTheme = process.env.NODE_ENV === "development"
+    ? new URLSearchParams(window.location.search).get("themePreview")
+    : null;
   const [serverTheme, setServerTheme] = useState("default"); // Theme từ server (không thay đổi khi toggle)
   const [isThemeEnabled, setIsThemeEnabled] = useState(() => {
     // Load from localStorage, default to true
@@ -163,6 +166,11 @@ export const ThemeProvider = ({ children }) => {
 
   // Load theme from server on mount
   useEffect(() => {
+    if (previewTheme && Object.prototype.hasOwnProperty.call(themes, previewTheme)) {
+      setServerTheme(previewTheme);
+      setLoading(false);
+      return undefined;
+    }
     const loadTheme = async () => {
       const revision = themeRevision.current;
       try {
@@ -188,7 +196,7 @@ export const ThemeProvider = ({ children }) => {
     // Poll for theme changes every 5 minutes
     const interval = setInterval(loadTheme, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [previewTheme]);
 
   // Toggle theme on/off
   const toggleTheme = useCallback(() => {

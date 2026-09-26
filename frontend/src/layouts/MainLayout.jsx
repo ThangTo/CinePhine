@@ -8,6 +8,7 @@ import { hexToRgbChannels } from "utils/colorUtils";
 
 const Chatbot = lazy(() => import("components/general/Chatbot"));
 const ThemeDecorations = lazy(() => import("components/common/ThemeDecorations"));
+const ChristmasDecorations = lazy(() => import("components/common/ChristmasDecorations"));
 const MailboxFAB = lazy(() => import("components/general/MailboxFAB"));
 
 function useDeferredMount(timeout = 2500) {
@@ -42,7 +43,9 @@ function DeferredLayoutWidgets({ theme, currentTheme }) {
 
   return (
     <Suspense fallback={null}>
-      {theme.decorations.enabled && <ThemeDecorations theme={currentTheme} />}
+      {theme.decorations.enabled && (currentTheme === "christmas"
+        ? <ChristmasDecorations />
+        : <ThemeDecorations theme={currentTheme} />)}
       <Chatbot />
       <MailboxFAB />
     </Suspense>

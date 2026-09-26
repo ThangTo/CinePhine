@@ -468,78 +468,78 @@
 /* =========================================
    THEME: GIÁNG SINH & NĂM MỚI (Giữ nguyên)
    ========================================= */
-.xmas-light-wire {
+/* Christmas: evergreen, velvet and brushed champagne. */
+.winter-scene {
   position: fixed;
-  top: -10px;
-  left: 0;
-  width: 100%;
-  height: 40px;
-  display: flex;
-  justify-content: space-around;
-  border-top: 2px solid #2f3e46;
-  border-radius: 50%;
-  z-index: 999;
+  inset: 0;
+  z-index: 35;
   pointer-events: none;
+  overflow: hidden;
+  contain: layout style;
 }
-.xmas-bulb {
-  width: 12px;
-  height: 20px;
+.winter-corner {
+  position: absolute;
+  top: 65px;
+  width: clamp(140px, 14vw, 240px);
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 5px 7px rgb(0 0 0 / 25%));
+}
+.winter-corner--left { left: -12px; }
+.winter-corner--right { right: -12px; transform: scaleX(-1); }
+.winter-top-thread {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, #bda16c, #f7e6bb 25%, #846b42 50%, #f7e6bb 75%, #bda16c);
+  opacity: .7;
+}
+.winter-pendant {
+  transform-box: view-box;
+  transform-origin: 117px 37px;
+  animation: winter-sway 9s ease-in-out infinite alternate;
+}
+.winter-pendant--red {
+  transform-origin: 46px 111px;
+  animation-duration: 12s;
+  animation-delay: -4s;
+}
+.winter-light { animation: winter-glimmer 5s ease-in-out infinite alternate; }
+.winter-snow i {
+  position: absolute;
+  top: -8px;
   border-radius: 50%;
-  margin-top: 5px;
-  animation: xmas-blink 1.5s infinite alternate;
+  background: #f5f2e9;
+  opacity: 0;
+  animation: winter-snowfall var(--snow-duration) linear var(--snow-delay) infinite;
 }
-.color-0 {
-  background: #ff0000;
-  box-shadow: 0 0 10px #ff0000;
+.winter-snow i:nth-child(5n) { filter: blur(.6px); }
+.winter-cursor-trail { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+@keyframes winter-sway {
+  from { transform: rotate(-2deg); }
+  to { transform: rotate(2deg); }
 }
-.color-1 {
-  background: #00ff00;
-  box-shadow: 0 0 10px #00ff00;
+@keyframes winter-glimmer {
+  from { opacity: .5; }
+  to { opacity: 1; }
 }
-.color-2 {
-  background: #ffd700;
-  box-shadow: 0 0 10px #ffd700;
+@keyframes winter-snowfall {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  8% { opacity: .55; }
+  85% { opacity: .35; }
+  100% { transform: translate3d(var(--snow-drift), 102dvh, 0); opacity: 0; }
 }
-.color-3 {
-  background: #0000ff;
-  box-shadow: 0 0 10px #0000ff;
+@media (max-width: 767px) {
+  .winter-corner { top: 56px; width: 132px; opacity: .9; }
+  .winter-corner--left { left: 0; }
+  .winter-corner--right { right: 0; }
+  .winter-snow i:nth-child(n + 13) { display: none; }
 }
-@keyframes xmas-blink {
-  0% {
-    opacity: 0.3;
-    transform: scale(0.8);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
+@media (prefers-reduced-motion: reduce) {
+  .winter-pendant, .winter-light { animation: none; }
+  .winter-snow { display: none; }
 }
-@keyframes xmas-snow-fall {
-  0% {
-    transform: translateY(-20px);
-  }
-  100% {
-    transform: translateY(105vh);
-  }
-}
-.xmas-santa {
-  position: fixed;
-  top: 10%;
-  left: -20%;
-  font-size: 60px;
-  animation: santa-fly 10s linear forwards;
-  z-index: 5;
-}
-@keyframes santa-fly {
-  0% {
-    left: -20%;
-    transform: rotate(5deg);
-  }
-  100% {
-    left: 120%;
-    transform: rotate(-5deg);
-  }
-}
+:fullscreen .winter-scene { display: none; }
 .ny-balloon {
   position: absolute;
   bottom: -50px;

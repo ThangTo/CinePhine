@@ -424,46 +424,7 @@ const ThemeDecorations = ({ theme }) => {
         }, 2500 + Math.random() * 1000);
       }
 
-      // ... (Christmas và NewYear giữ nguyên như cũ của bạn) ...
-      else if (theme === "christmas") {
-        const createLights = () => {
-          const wire = document.createElement("div");
-          wire.className = "xmas-light-wire";
-          for (let i = 0; i < 20; i++) {
-            const bulb = document.createElement("div");
-            bulb.className = `xmas-bulb color-${i % 4}`;
-            bulb.style.animationDelay = `${Math.random()}s`;
-            wire.appendChild(bulb);
-          }
-          container.appendChild(wire);
-        };
-        const createSnowflake = () => {
-          const snowflake = document.createElement("div");
-          snowflake.textContent = "❄";
-          const size = 5 + Math.random() * 15;
-          const leftPos = Math.random() * 100;
-          const duration = 5 + Math.random() * 10;
-          snowflake.style.cssText = `position: fixed; top: -20px; left: ${leftPos}%; font-size: ${size}px; color: rgba(255, 255, 255, ${
-            0.4 + Math.random() * 0.6
-          }); animation: xmas-snow-fall ${duration}s linear infinite; z-index: ${
-            Math.random() > 0.5 ? 1 : 0
-          }; pointer-events: none;`;
-          container.appendChild(snowflake);
-        };
-        const createSanta = () => {
-          const santa = document.createElement("div");
-          santa.className = "xmas-santa";
-          santa.textContent = "🎅🛷🦌";
-          container.appendChild(santa);
-          setTimeout(() => santa.remove(), 10000);
-        };
-        if (!isMobile) createLights();
-        for (let i = 0; i < (isMobile ? 20 : 50); i++)
-          setTimeout(createSnowflake, Math.random() * 5000);
-        intervalRef.current = setInterval(() => {
-          if (Math.random() > 0.8) createSanta();
-        }, 15000);
-      } else if (theme === "newyear") {
+      else if (theme === "newyear") {
         const createBalloon = () => {
           const balloon = document.createElement("div");
           balloon.className = "ny-balloon";
