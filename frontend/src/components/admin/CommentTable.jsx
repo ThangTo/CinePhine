@@ -274,6 +274,13 @@ const CommentTable = () => {
                       >
                         {comment.content}
                       </p>
+                      <p className="text-xs text-gray-400 break-words">
+                        <span className="text-gray-500">Phim: </span>
+                        {comment.movieName || "Không xác định"}
+                        {comment.episodeId != null && (
+                          <span> · Tập {comment.episodeId}</span>
+                        )}
+                      </p>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         {comment.flag && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">

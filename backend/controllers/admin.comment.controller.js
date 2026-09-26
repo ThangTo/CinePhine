@@ -24,7 +24,7 @@ const getAll = async (req, res) => {
 
     const [comments, total] = await Promise.all([
       Comment.find(query)
-        .select('content flag flagReason status createdAt userId movieId') // Only fetch needed fields
+        .select('content flag flagReason status createdAt userId movieId episodeId') // Only fetch needed fields
         .populate('userId', 'username role') // Skip avatar, email
         .populate('movieId', 'name')
         .sort({ createdAt: -1 })
@@ -48,7 +48,8 @@ const getAll = async (req, res) => {
         role: c.userId?.role || 'User',
         // avatar skipped as requested
       },
-      movieName: c.movieId?.name
+      movieName: c.movieId?.name,
+      episodeId: c.episodeId ?? null
     }));
 
     res.json({
