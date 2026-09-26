@@ -12,6 +12,7 @@ import { getYouTubeEmbedUrl } from "utils/videoUtils";
 import {
   countUniqueEpisodes,
   findEpisodeVariant,
+  getEpisodeNumber,
   pickPreferredAudioType,
 } from "utils/episodeSelection";
 import movieService from "services/movie.service";
@@ -141,6 +142,7 @@ const WatchPage = () => {
     : findEpisodeVariant(episodes, activeEp, audioType);
 
   const totalPlayableEpisodes = movie.totalEpisodes || countUniqueEpisodes(episodes);
+  const commentEpisodeId = isTrailerOnly ? null : getEpisodeNumber(currentEpisode);
 
   console.log("🎬 [WatchPage] Current episode:", {
     activeEp,
@@ -219,7 +221,7 @@ const WatchPage = () => {
 
             {/* Comments - constrained to left grid column on desktop */}
             <div className="hidden lg:block mt-6">
-              <CommentsSection movie={movie} />
+              <CommentsSection movie={movie} episodeId={commentEpisodeId} />
             </div>
           </div>
 
@@ -241,7 +243,7 @@ const WatchPage = () => {
 
           {/* Mobile/Tablet Comments below rating & cast */}
           <div className="lg:hidden w-full mt-6">
-            <CommentsSection movie={movie} />
+            <CommentsSection movie={movie} episodeId={commentEpisodeId} />
           </div>
         </div>
       </div>

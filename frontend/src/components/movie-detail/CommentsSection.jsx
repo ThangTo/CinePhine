@@ -91,7 +91,7 @@ const setDislikedComment = (commentId, isDisliked, userId) => {
   }
 };
 
-const CommentsSection = ({ movie, className = "" }) => {
+const CommentsSection = ({ movie, episodeId = null, className = "" }) => {
   const [activeView, setActiveView] = useState("comments"); // "comments" or "ratings"
   const [commentText, setCommentText] = useState("");
   const [isSpoiler, setIsSpoiler] = useState(false);
@@ -164,6 +164,7 @@ const CommentsSection = ({ movie, className = "" }) => {
       const response = await movieService.postComment(movie.id, {
         content: commentText,
         isSpoiler,
+        ...(Number.isInteger(episodeId) && episodeId > 0 ? { episodeId } : {}),
       });
       const userId = user?._id || user?.id || null;
       const newComment = formatComment(response.data || response, userId);
