@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import apiRequest from "services/utils/apiRequest";
+import { hexToRgbChannels } from "utils/colorUtils";
 
 /**
  * ThemeContext - Provides theme state and methods throughout the app
@@ -35,6 +36,8 @@ export const themes = {
     colors: {
       primary: "#dc2626", // Red - màu đỏ may mắn
       primaryHover: "#b91c1c",
+      primaryText: "#fca5a5",
+      onPrimary: "#ffffff",
       background: "#0a0a0a", // Dark background với hint đỏ
       surface: "#1a0a0a", // Surface với hint đỏ
       text: "#ffffff",
@@ -62,9 +65,12 @@ export const themes = {
   christmas: {
     name: "christmas",
     displayName: "Giáng Sinh",
+    loader: "snowman",
     colors: {
-      primary: "#dfc38b", // Champagne
-      primaryHover: "#f1dbad",
+      primary: "#176044", // Evergreen buttons
+      primaryHover: "#217653",
+      primaryText: "#93d9ae",
+      onPrimary: "#ffffff",
       background: "#10191a",
       surface: "#192724",
       text: "#ffffff",
@@ -209,6 +215,31 @@ export const ThemeProvider = ({ children }) => {
   const currentTheme = isThemeEnabled ? serverTheme : "default";
   const theme = themes[currentTheme] || themes.default;
   const allThemes = themes;
+
+  // Root variables also reach route fallbacks and portals outside MainLayout.
+  useEffect(() => {
+    const colors = theme.colors;
+    const isDefault = currentTheme === "default";
+    const tokens = {
+      "--ui-primary": isDefault ? "#ffd875" : colors.primary,
+      "--ui-primary-hover": isDefault ? "#fde68a" : colors.primaryHover,
+      "--ui-primary-text": isDefault ? "#ffd875" : (colors.primaryText || colors.primary),
+      "--ui-on-primary": colors.onPrimary || "#191b24",
+      "--ui-loading": isDefault ? "#f3bf1a" : (colors.primaryText || colors.primary),
+    };
+    const root = document.documentElement;
+    const previous = Object.fromEntries(Object.keys(tokens).map((key) => [key, root.style.getPropertyValue(key)]));
+    const previousTheme = root.getAttribute("data-site-theme");
+    Object.entries(tokens).forEach(([key, value]) => {
+      root.style.setProperty(key, hexToRgbChannels(value).replace(/,/g, ""));
+    });
+    root.setAttribute("data-site-theme", currentTheme);
+    return () => {
+      Object.entries(previous).forEach(([key, value]) => value ? root.style.setProperty(key, value) : root.style.removeProperty(key));
+      if (previousTheme === null) root.removeAttribute("data-site-theme");
+      else root.setAttribute("data-site-theme", previousTheme);
+    };
+  }, [theme, currentTheme]);
 
   const value = {
     theme,

@@ -5,6 +5,7 @@ import { NotificationProvider } from "contexts/NotificationContext";
 import { ThemeProvider } from "contexts/ThemeContext";
 import { VoiceProvider, useVoice } from "contexts/VoiceContext";
 import ErrorBoundary from "components/common/ErrorBoundary";
+import LoadingState from "components/common/LoadingState";
 import { initUserInteractionListener } from "utils/userInteraction";
 import "styles/themes.css";
 import ProtectedRoute from "./components/general/ProtectedRoute";
@@ -24,6 +25,7 @@ const PremiumPage = lazy(() => import("./pages/PremiumPage"));
 const RechargeCoinPage = lazy(() => import("./pages/RechargeCoinPage"));
 const CastDetailPage = lazy(() => import("./pages/CastDetailPage"));
 const MainLayout = lazy(() => import("layouts/MainLayout"));
+const ThemePreview = process.env.NODE_ENV === "development" ? lazy(() => import("pages/ThemePreview")) : null;
 const NotFoundPage = lazy(() => import("./pages/NotFound"));
 const GoogleAuthHandler = lazy(() => import("pages/GoogleAuthHandler"));
 const GoogleAuthHandlerWrapper = lazy(() => import("components/common/GoogleAuthHandlerWrapper"));
@@ -32,21 +34,7 @@ const VoiceIndicator = lazy(() => import("components/common/VoiceIndicator"));
 const TimiOnboarding = lazy(() => import("components/common/TimiOnboarding"));
 
 function RouteLoading() {
-  return (
-    <div className="min-h-dvh bg-[#0a0a0c] flex items-center justify-center">
-      <div className="flex items-center justify-center gap-1.5 h-8" aria-label="Loading">
-        <div className="w-1.5 h-6 bg-primaryColor rounded-full animate-bounce" />
-        <div
-          className="w-1.5 h-8 bg-primaryColor rounded-full animate-bounce"
-          style={{ animationDelay: "-0.2s" }}
-        />
-        <div
-          className="w-1.5 h-6 bg-primaryColor rounded-full animate-bounce"
-          style={{ animationDelay: "-0.4s" }}
-        />
-      </div>
-    </div>
-  );
+  return <LoadingState />;
 }
 
 function CursorEffectsSlot({ activeEffectId }) {
@@ -92,6 +80,7 @@ function AppInner() {
               }
             >
               <Route index element={<HomePage />} />
+              {ThemePreview && <Route path="/theme-preview" element={<ThemePreview />} />}
               <Route path="/genre/:slug" element={<GenrePage />} />
               <Route path="/movie/:id" element={<MovieDetail />} />
               <Route path="/cast/:id" element={<CastDetailPage />} />

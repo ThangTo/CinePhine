@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import ChristmasCursorTrail from "./ChristmasCursorTrail";
+import ChristmasGifts from "./ChristmasGifts";
 
 // Deterministic particles keep the scene stable across renders.
 const snow = Array.from({ length: 28 }, (_, i) => ({
@@ -129,12 +130,13 @@ function WinterCorner({ side }) {
 }
 
 export default function ChristmasDecorations() {
+  const { pathname } = useLocation();
   return (
     <div className="winter-scene" aria-hidden="true">
       <ChristmasCursorTrail />
-      <div className="winter-top-thread" />
       <WinterCorner side="left" />
       <WinterCorner side="right" />
+      {!pathname.startsWith("/watch/") && !pathname.startsWith("/account") && <ChristmasGifts />}
       <div className="winter-snow">
         {snow.map((flake, i) => (
           <i key={i} style={{ left: flake.left, width: flake.size, height: flake.size, "--snow-duration": flake.duration, "--snow-delay": flake.delay, "--snow-drift": flake.drift }} />

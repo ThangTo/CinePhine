@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "hooks/useAuth";
-import { BarSpinner } from "components/common/LoadingState";
+import { BarSpinner, PageSpinner } from "components/common/LoadingState";
 import { settingsAPI } from "services/admin.service";
 import http from "lib/axios";
 
@@ -134,7 +134,7 @@ const RechargeCoinPage = () => {
   if (!user) {
     return (
       <div className="min-h-dvh bg-[#111] flex items-center justify-center">
-        <BarSpinner />
+        <PageSpinner />
       </div>
     );
   }

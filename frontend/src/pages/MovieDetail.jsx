@@ -1,7 +1,7 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 import { MobileLayout, DesktopLayout } from "components/movie-detail/index";
-import { BarSpinner } from "components/common/LoadingState";
+import { PageSpinner } from "components/common/LoadingState";
 import ErrorState from "components/common/ErrorState";
 import ResumePromptModal from "components/movie-detail/ResumePromptModal";
 import useMovieDetail from "hooks/useMovieDetail";
@@ -25,7 +25,7 @@ const MovieDetail = () => {
   if (loading) {
     return (
       <div className="min-h-dvh bg-bgColor text-white flex items-center justify-center">
-        <BarSpinner />
+        <PageSpinner />
       </div>
     );
   }

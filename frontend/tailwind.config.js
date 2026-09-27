@@ -25,10 +25,10 @@ module.exports = {
         bgColor2: "#282B3A",
         bgColor3: "#ffffff10",
         bgColor4: "#10121b",
-        primaryColor: "#ffd875",
-        hoverPrimaryColor: "#fde68a",
+        primaryColor: "rgb(var(--ui-primary, 255 216 117) / <alpha-value>)",
+        hoverPrimaryColor: "rgb(var(--ui-primary-hover, 253 230 138) / <alpha-value>)",
         hoverLinkColor: "#22d3ee",
-        primaryColorButtonText: "#191B24",
+        primaryColorButtonText: "rgb(var(--ui-on-primary, 25 27 36) / <alpha-value>)",
 
         borderColor: "#ffffff10",
         account: {
@@ -146,6 +146,16 @@ module.exports = {
         "3xl": "1920px",
         "laptop-sm": { min: "1024px", max: "1207px" },
         "laptop-xs": { min: "1024px", max: "1081px" },
+      },
+      textColor: {
+        primaryColor: "rgb(var(--ui-primary-text, 255 216 117) / <alpha-value>)",
+        hoverPrimaryColor: "rgb(var(--ui-primary-text, 253 230 138) / <alpha-value>)",
+      },
+      borderColor: {
+        primaryColor: "rgb(var(--ui-primary-text, 255 216 117) / <alpha-value>)",
+      },
+      ringColor: {
+        primaryColor: "rgb(var(--ui-primary-text, 255 216 117) / <alpha-value>)",
       },
     },
   },

@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSystemInstruction } from "constants/chatbotKnowledge";
+import { useTheme } from "contexts/ThemeContext";
+import SnowmanLoader from "components/common/SnowmanLoader";
 
 const EMOJI_MART_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js";
 let emojiMartLoadPromise = null;
@@ -178,6 +180,8 @@ function parseStreamEvent(frame) {
 
 const Chatbot = () => {
   const navigate = useNavigate();
+  const { currentTheme } = useTheme();
+  const isChristmas = currentTheme === "christmas";
   const chatBodyRef = useRef(null);
   const messageInputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -496,22 +500,24 @@ const Chatbot = () => {
       {/* ====== TOGGLER BUTTON ====== */}
       <button
         id="chatbot-toggler"
+        aria-label={showChatbot ? "Đóng trò chuyện" : "Mở trò chuyện"}
+        aria-expanded={showChatbot}
         ref={chatbotTogglerRef}
         onClick={() => setShowChatbot(!showChatbot)}
         className={`hidden sm:fixed bottom-4 md:bottom-6 right-5 md:right-8 h-14 w-14 sm:flex items-center justify-center rounded-full shadow-[0_0_20px_rgba(var(--primary-color-rgb),0.4)] transition-all duration-300 z-[100005] hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(var(--primary-color-rgb),0.5)] ${
-          showChatbot ? "rotate-90 bg-bgColor2/90 border border-white/10" : "bg-primaryColor"
+          showChatbot ? "rotate-90 bg-bgColor2/90 border border-white/10" : isChristmas ? "chatbot-snowman-toggle" : "bg-primaryColor"
         }`}
       >
         <span
           className={`absolute transition-all duration-300 ${showChatbot ? "opacity-0 scale-0 rotate-180" : "opacity-100 scale-100 rotate-0"}`}
         >
-          <svg
+          {isChristmas ? <span className="chatbot-snowman"><SnowmanLoader /></span> : <svg
             className="w-7 h-7 fill-gray-900 drop-shadow-md"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1024 1024"
           >
             <path d="M738.3 287.6H285.7c-59 0-106.8 47.8-106.8 106.8v303.1c0 59 47.8 106.8 106.8 106.8h81.5v111.1c0 .7.8 1.1 1.4.7l166.9-110.6 41.8-.8h117.4l43.6-.4c59 0 106.8-47.8 106.8-106.8V394.5c0-59-47.8-106.9-106.8-106.9zM351.7 448.2c0-29.5 23.9-53.5 53.5-53.5s53.5 23.9 53.5 53.5-23.9 53.5-53.5 53.5-53.5-23.9-53.5-53.5zm157.9 267.1c-67.8 0-123.8-47.5-132.3-109h264.6c-8.6 61.5-64.5 109-132.3 109zm110-213.7c-29.5 0-53.5-23.9-53.5-53.5s23.9-53.5 53.5-53.5 53.5 23.9 53.5 53.5-23.9 53.5-53.5 53.5zM867.2 644.5V453.1h26.5c19.4 0 35.1 15.7 35.1 35.1v121.1c0 19.4-15.7 35.1-35.1 35.1h-26.5zM95.2 609.4V488.2c0-19.4 15.7-35.1 35.1-35.1h26.5v191.3h-26.5c-19.4 0-35.1-15.7-35.1-35.1zM561.5 149.6c0 23.4-15.6 43.3-36.9 49.7v44.9h-30v-44.9c-21.4-6.5-36.9-26.3-36.9-49.7 0-28.6 23.3-51.9 51.9-51.9s51.9 23.3 51.9 51.9z" />
-          </svg>
+          </svg>}
         </span>
         <span
           className={`absolute transition-all duration-300 ${showChatbot ? "opacity-100 scale-100 rotate-0" : "opacity-0 scale-0 -rotate-180"}`}

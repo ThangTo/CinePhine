@@ -45,6 +45,8 @@ test("saving Christmas immediately updates the public theme and reveals the togg
   await waitFor(() => expect(screen.getByTestId("theme-state").textContent).toBe("christmas/christmas"));
   expect(settingsAPI.setTheme).toHaveBeenCalledWith("christmas");
   expect(screen.getByTitle("Tắt theme")).toBeTruthy();
+  expect(document.documentElement.style.getPropertyValue("--ui-primary")).toBe("23 96 68");
+  expect(document.documentElement.style.getPropertyValue("--ui-on-primary")).toBe("255 255 255");
 });
 
 test("saving a theme preserves a visitor's disabled preference", async () => {
@@ -53,6 +55,7 @@ test("saving a theme preserves a visitor's disabled preference", async () => {
   fireEvent.click(await screen.findByRole("button", { name: /Giáng Sinh/ }));
   await waitFor(() => expect(screen.getByTestId("theme-state").textContent).toBe("christmas/default"));
   expect(localStorage.getItem("themeEnabled")).toBe("false");
+  expect(document.documentElement.style.getPropertyValue("--ui-primary")).toBe("255 216 117");
   fireEvent.click(screen.getByTitle("Bật theme"));
   expect(screen.getByTestId("theme-state").textContent).toBe("christmas/christmas");
 });

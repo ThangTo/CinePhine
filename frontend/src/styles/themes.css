@@ -487,12 +487,8 @@
 }
 .winter-corner--left { left: -12px; }
 .winter-corner--right { right: -12px; transform: scaleX(-1); }
-.winter-top-thread {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  background: linear-gradient(90deg, #bda16c, #f7e6bb 25%, #846b42 50%, #f7e6bb 75%, #bda16c);
-  opacity: .7;
+html[data-site-theme="christmas"] .site-header-logo {
+  filter: hue-rotate(85deg) saturate(.55) brightness(.9);
 }
 .winter-pendant {
   transform-box: view-box;
@@ -540,6 +536,58 @@
   .winter-snow { display: none; }
 }
 :fullscreen .winter-scene { display: none; }
+
+/* Solid primary controls need the foreground paired with their theme color. */
+:root:not([data-site-theme="default"])[data-site-theme] :is(
+  .bg-primaryColor, .bg-primaryColor\/90, .bg-primaryColor\/80,
+  .hover\:bg-primaryColor:hover, .hover\:bg-hoverPrimaryColor:hover,
+  .hover\:bg-primaryColor\/90:hover, .hover\:bg-primaryColor\/80:hover
+) { color: rgb(var(--ui-on-primary, 25 27 36)); }
+:root[data-site-theme="christmas"] .bg-primaryColor .fill-gray-900 { fill: rgb(var(--ui-on-primary)); }
+
+.winter-gifts {
+  position: absolute;
+  left: max(6px, env(safe-area-inset-left));
+  bottom: max(0px, env(safe-area-inset-bottom));
+  width: clamp(150px, 15vw, 220px);
+  height: auto;
+  filter: drop-shadow(0 6px 10px rgb(0 0 0 / 20%));
+}
+.snowman-loader { width: 180px; height: 162px; overflow: visible; }
+.chatbot-snowman-toggle { width: 80px; height: 80px; background: transparent; box-shadow: none; }
+.chatbot-snowman-toggle:hover { box-shadow: none; }
+.chatbot-snowman { display: block; filter: drop-shadow(0 4px 8px rgb(0 0 0 / 30%)); }
+.chatbot-snowman .snowman-loader { display: block; width: 100px; height: 90px; }
+.chatbot-snowman .snowman-body { animation-duration: 3s; }
+.chatbot-snowman .snowman-arm { animation-duration: 1.5s; }
+.chatbot-snowman .snowman-foot { animation: none; }
+.chatbot-snowman .snowman-puffs { display: none; }
+.snowman-body { animation: snowman-jog .65s ease-in-out infinite; transform-origin: 100px 120px; }
+.snowman-foot { animation: snowman-step .65s ease-in-out infinite; transform-origin: 100px 150px; }
+.snowman-foot--right { animation-delay: -.325s; }
+.snowman-arm { transform-origin: 70px 99px; animation: snowman-wave .65s ease-in-out infinite alternate; }
+.snowman-arm--right { transform-origin: 129px 98px; animation-delay: -.325s; }
+.snowman-scarf-tail { transform-origin: 115px 94px; animation: snowman-scarf .65s ease-in-out infinite alternate; }
+.snowman-eyes { transform-origin: 101px 70px; animation: snowman-blink 4.5s linear infinite; }
+.snowman-puffs { animation: snowman-puff 1.3s ease-out infinite; }
+.snowman-tracks { animation: snowman-tracks 1.3s linear infinite; }
+@keyframes snowman-tracks { to { transform: translateX(-36px); } }
+.loading-bars { max-width: 100%; max-height: 100%; }
+.loading-bars > span { min-width: 2px; flex-shrink: 1; max-height: 100%; background-color: rgb(var(--ui-loading, 243 191 26)); }
+.loading-ring { border-top-color: rgb(var(--ui-loading, 243 191 26)); }
+@keyframes snowman-jog { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
+@keyframes snowman-step { 0%,100% { transform: translateX(-6px) rotate(-9deg); } 50% { transform: translate(6px,-4px) rotate(9deg); } }
+@keyframes snowman-wave { from { transform: rotate(-8deg); } to { transform: rotate(10deg); } }
+@keyframes snowman-scarf { from { transform: rotate(-10deg); } to { transform: rotate(8deg); } }
+@keyframes snowman-blink { 0%,43%,47%,100% { transform: scaleY(1); } 45% { transform: scaleY(.1); } }
+@keyframes snowman-puff { from { opacity: .7; transform: translateX(7px); } to { opacity: 0; transform: translateX(-12px); } }
+@media (max-width: 767px) {
+  .winter-gifts { width: 105px; opacity: .85; }
+  .snowman-loader { width: 150px; height: 135px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .snowman-loader *, .loading-bars > span, .loading-ring { animation: none !important; }
+}
 .ny-balloon {
   position: absolute;
   bottom: -50px;

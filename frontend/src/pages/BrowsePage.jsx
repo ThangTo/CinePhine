@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import MovieCard from "components/home-page/MovieCard";
 import Pagination from "components/common/Pagination";
 import MovieFilter from "components/common/MovieFilter";
-import { BarSpinner } from "components/common/LoadingState";
+import { PageSpinner } from "components/common/LoadingState";
 import EmptyState from "components/common/EmptyState";
 import ErrorState from "components/common/ErrorState";
 import movieService from "services/movie.service";
@@ -183,7 +183,7 @@ const BrowsePage = () => {
   if (loading && movies.length === 0) {
     return (
       <div className="min-h-dvh bg-bgColor text-white flex items-center justify-center">
-        <BarSpinner />
+        <PageSpinner />
       </div>
     );
   }

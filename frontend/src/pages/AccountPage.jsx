@@ -8,7 +8,7 @@ import NotificationsTab from "components/notifications/NotificationsTab";
 import { useNotifications } from "contexts/NotificationContext";
 import useAuth from "hooks/useAuth";
 import userService from "services/user.service";
-import { BarSpinner } from "components/common/LoadingState";
+import { PageSpinner } from "components/common/LoadingState";
 import ContinueWatchingSection from "components/account/ContinueWatchingSection";
 import FavoritesSection from "components/account/FavoritesSection";
 import WatchlistSection from "components/account/WatchlistSection";
@@ -119,7 +119,7 @@ const AccountPage = () => {
   if (isLoading || !user) {
     return (
       <div className="min-h-dvh bg-bgColor text-white flex items-center justify-center">
-        <BarSpinner />
+        <PageSpinner />
       </div>
     );
   }

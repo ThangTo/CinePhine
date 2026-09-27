@@ -16,7 +16,7 @@ import {
   pickPreferredAudioType,
 } from "utils/episodeSelection";
 import movieService from "services/movie.service";
-import { BarSpinner } from "components/common/LoadingState";
+import { PageSpinner } from "components/common/LoadingState";
 import CastSection from "components/movie-detail/CastSection";
 import RecommendationsSection from "components/general/RecommendationsSection";
 
@@ -114,7 +114,7 @@ const WatchPage = () => {
   if (loading) {
     return (
       <div className="min-h-dvh bg-bgColor text-white flex items-center justify-center">
-        <BarSpinner />
+        <PageSpinner />
       </div>
     );
   }

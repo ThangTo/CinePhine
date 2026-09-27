@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useAuth from "hooks/useAuth";
 import userService from "services/user.service";
 import { settingsAPI } from "services/admin.service";
-import { BarSpinner } from "components/common/LoadingState";
+import { BarSpinner, PageSpinner } from "components/common/LoadingState";
 import PremiumStatusSummary from "components/account/PremiumStatusSummary";
 import { getPremiumSummary, isPremiumActive } from "utils/premiumUtils";
 
@@ -105,7 +105,7 @@ const PremiumPage = () => {
   if (!user) {
     return (
       <div className="min-h-dvh bg-[#111] flex items-center justify-center">
-        <BarSpinner />
+        <PageSpinner />
       </div>
     );
   }

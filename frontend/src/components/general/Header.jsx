@@ -108,7 +108,7 @@ const Header = () => {
             <img
               src={logo2Trans}
               alt="CinePhine"
-              className="absolute left-1/2 top-1/2 h-[255%] w-auto max-w-none -translate-x-1/2 -translate-y-1/2 select-none"
+              className="site-header-logo absolute left-1/2 top-1/2 h-[255%] w-auto max-w-none -translate-x-1/2 -translate-y-1/2 select-none"
               draggable={false}
             />
           </Link>

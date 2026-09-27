@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { BarSpinner } from "components/common/LoadingState";
+import { PageSpinner } from "components/common/LoadingState";
 import ErrorState from "components/common/ErrorState";
 import OptimizedImage from "components/common/OptimizedImage";
 import MovieCard from "components/home-page/MovieCard";
@@ -65,7 +65,7 @@ const CastDetailPage = () => {
   if (loading) {
     return (
       <div className="min-h-dvh bg-bgColor text-white flex items-center justify-center">
-        <BarSpinner />
+        <PageSpinner />
       </div>
     );
   }
