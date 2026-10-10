@@ -27,7 +27,7 @@ const InstallGuide = ({ onClose }) => {
         <div className="relative p-5 pb-[calc(1.25rem+var(--safe-bottom))]">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primaryColor to-[#fff1b8] text-[#17110a] shadow-[0_18px_40px_rgba(255,216,117,0.22)]">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primaryColor to-[#fff1b8] text-[#17110a] shadow-[0_18px_40px_rgb(var(--ui-primary)/0.22)]">
                 <Smartphone size={22} strokeWidth={2.2} />
               </div>
               <div className="min-w-0">
@@ -110,7 +110,7 @@ const PwaInstallButton = ({ variant = "desktop", className = "" }) => {
           className={`group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-primaryColor/25 bg-gradient-to-r from-primaryColor/[0.16] via-white/[0.05] to-cyan-400/[0.08] px-3 py-3 text-left text-white shadow-[0_14px_34px_rgba(0,0,0,0.22)] transition-all hover:border-primaryColor/45 hover:from-primaryColor/[0.22] hover:to-cyan-400/[0.12] ${className}`}
         >
           <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-primaryColor/80 to-transparent opacity-70" />
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primaryColor text-[#17110a] shadow-[0_10px_26px_rgba(255,216,117,0.25)] transition-transform group-hover:-translate-y-0.5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primaryColor text-[#17110a] shadow-[0_10px_26px_rgb(var(--ui-primary)/0.25)] transition-transform group-hover:-translate-y-0.5">
             <Download size={18} strokeWidth={2.25} />
           </span>
           <span className="min-w-0 flex-1">
@@ -133,7 +133,7 @@ const PwaInstallButton = ({ variant = "desktop", className = "" }) => {
       <button
         type="button"
         onClick={handleInstall}
-        className={`group relative inline-flex h-10 items-center gap-2 overflow-hidden rounded-full border border-primaryColor/25 bg-white/[0.06] laptop-sm:px-1 laptop-sm:h-8 px-3 text-sm font-bold text-white shadow-[0_10px_28px_rgba(0,0,0,0.24)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-primaryColor/55 hover:bg-primaryColor/[0.14] hover:shadow-[0_16px_36px_rgba(255,216,117,0.16)] ${className}`}
+        className={`group relative inline-flex h-10 items-center gap-2 overflow-hidden rounded-full border border-primaryColor/25 bg-white/[0.06] laptop-sm:px-1 laptop-sm:h-8 px-3 text-sm font-bold text-white shadow-[0_10px_28px_rgba(0,0,0,0.24)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-primaryColor/55 hover:bg-primaryColor/[0.14] hover:shadow-[0_16px_36px_rgb(var(--ui-primary)/0.16)] ${className}`}
         aria-label="Cài CinePhine"
         title="Cài app"
       >

@@ -136,7 +136,7 @@ const AccountSidebar = ({ user, onLogout, prestigeRank }) => {
               {isPremium && (
                 <i
                   className="fa-solid fa-crown text-primaryColor text-xs"
-                  style={{ filter: "drop-shadow(0 0 3px rgba(255,216,117,0.6))" }}
+                  style={{ filter: "drop-shadow(0 0 3px rgb(var(--ui-primary)/0.6))" }}
                 />
               )}
             </div>

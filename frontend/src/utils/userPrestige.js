@@ -71,7 +71,7 @@ export const getPrestigeContainerClassName = (user, rank) => {
 
   if (prestige.isPremium) {
     classes.push(
-      "border-primaryColor/35 ring-1 ring-primaryColor/20 shadow-[0_0_24px_rgba(255,216,117,0.12)]",
+      "border-primaryColor/35 ring-1 ring-primaryColor/20 shadow-[0_0_24px_rgb(var(--ui-primary)/0.12)]",
     );
   }
 

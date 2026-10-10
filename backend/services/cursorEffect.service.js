@@ -3,6 +3,12 @@ const User = require('../models/user.model');
 const { isPremiumActive } = require('./premium.service');
 const coinLedgerService = require('./coinLedger.service');
 
+// Must match HUNT_SPOTS / HUNT_TOTAL in frontend/src/components/common/HalloweenTreats.jsx
+// (pumpkins pop up on random pages daily, any HALLOWEEN_HUNT_TOTAL different page keys win).
+const HALLOWEEN_HUNT_SPOTS = ['home', 'genre', 'country', 'movie', 'type', 'cast', 'search', 'filter', 'premium', 'recharge'];
+const HALLOWEEN_HUNT_TOTAL = 5;
+const HALLOWEEN_EFFECT_ID = 'halloween';
+
 const createCursorEffectError = (message, statusCode = 400) => {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -159,7 +165,7 @@ const purchaseEffect = async (userId, effectId) => {
     reason: 'cursor_purchase',
     sourceType: 'cursor_effect',
     sourceId: effect.effectId,
-    note: `Mua hieu ung con tro ${effect.nameVi || effect.name}`,
+    note: `Mua hiệu ứng con trỏ ${effect.nameVi || effect.name}`,
     metadata: {
       effectId: effect.effectId,
       effectName: effect.nameVi || effect.name,
@@ -208,6 +214,40 @@ const equipEffect = async (userId, effectId) => {
   return {
     message: `Đã trang bị hiệu ứng "${effect.nameVi}"`,
     cursorEffectId: effectId,
+  };
+};
+
+/**
+ * Tặng hiệu ứng Halloween khi user tìm đủ bí ngô ẩn (gọi lại nhiều lần vẫn an toàn).
+ * ponytail: tiến độ săn bí ngô do client gửi lên (lưu ở localStorage), sửa localStorage là nhận được.
+ * Chấp nhận vì đây chỉ là phần thưởng trang trí; muốn chống gian thì ghi từng lượt tìm lên server.
+ * @param {string} userId
+ * @param {Array<string>} spots
+ * @returns {Promise<Object>}
+ */
+const claimHalloweenHunt = async (userId, spots) => {
+  const found = new Set(Array.isArray(spots) ? spots : []);
+  if (HALLOWEEN_HUNT_SPOTS.filter((spot) => found.has(spot)).length < HALLOWEEN_HUNT_TOTAL) {
+    throw createCursorEffectError('Bạn chưa tìm đủ bí ngô ẩn', 400);
+  }
+
+  const effect = await CursorEffect.findOne({ effectId: HALLOWEEN_EFFECT_ID, isActive: true }).lean();
+  if (!effect) {
+    throw createCursorEffectError('Hiệu ứng không tồn tại', 404);
+  }
+
+  const result = await User.updateOne(
+    { _id: userId },
+    { $addToSet: { ownedCursorEffects: HALLOWEEN_EFFECT_ID } }
+  );
+  if (!result.matchedCount) {
+    throw createCursorEffectError('User not found', 404);
+  }
+
+  return {
+    effectId: HALLOWEEN_EFFECT_ID,
+    effectName: effect.nameVi,
+    newlyUnlocked: result.modifiedCount > 0,
   };
 };
 
@@ -283,6 +323,19 @@ const seedEffects = async () => {
       unlockType: 'shop',
       sortOrder: 13,
     },
+    {
+      effectId: HALLOWEEN_EFFECT_ID,
+      name: 'Pumpkin Night',
+      nameVi: 'Đêm Hội Bí Ngô',
+      description: 'Tàn lửa cam tím, bí ngô phát sáng và dơi nhỏ theo con trỏ chuột',
+      descriptionVi: 'Tàn lửa cam tím bay lên, bí ngô phát sáng nảy ra và những chú dơi nhỏ vỗ cánh theo con trỏ chuột.',
+      price: 0,
+      requiredRole: 'user',
+      unlockType: 'event',
+      unlockCondition: 'Find all 5 hidden pumpkins in the Halloween event',
+      unlockConditionVi: 'Tìm đủ 5 bí ngô ẩn mùa Halloween',
+      sortOrder: 20,
+    },
   ];
 
   // Upsert all effects (update if exists, insert if not)
@@ -298,6 +351,7 @@ module.exports = {
   getEffectsWithOwnership,
   purchaseEffect,
   equipEffect,
+  claimHalloweenHunt,
   seedEffects,
   checkOwnership,
   syncUserCursorEffectAccess,

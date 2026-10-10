@@ -17,7 +17,7 @@ export const useSectionVisible = () => useContext(SectionVisibleContext);
  */
 const LazySection = ({
   children,
-  fallback = <BarSpinner className="py-8" />,
+  fallback = <BarSpinner className="w-full py-8" />,
   rootMargin = "200px",
   minHeight = "200px",
 }) => {

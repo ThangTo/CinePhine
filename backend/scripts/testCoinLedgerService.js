@@ -42,14 +42,14 @@ function createHarness() {
       return created;
     },
     find(query = {}) {
-      const result = entries
-        .filter((entry) => {
-          if (query.userId && entry.userId !== query.userId) return false;
-          return true;
-        })
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      // Like MongoDB: insertion order unless the caller asks for .sort().
+      let result = entries.filter((entry) => !query.userId || entry.userId === query.userId);
 
       return {
+        sort(spec) {
+          if (spec.createdAt === -1) result = [...result].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          return this;
+        },
         skip(count) {
           this._skip = count;
           return this;

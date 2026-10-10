@@ -97,6 +97,14 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: ['none'],
     },
+    // Halloween fortune candy: last draw, one per Vietnam day
+    halloweenFortune: {
+      dateKey: String,
+      tier: String,
+      coins: Number,
+      charmed: Boolean,
+      pick: Number,
+    },
   },
   {
     timestamps: true,

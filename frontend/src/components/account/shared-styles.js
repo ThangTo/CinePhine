@@ -23,7 +23,7 @@ export const formStyles = {
   group: "mb-5",
   label: "block text-sm font-medium text-account-text-secondary mb-2",
   control:
-    "w-full px-3 py-3 bg-account-bg-tertiary border border-account-border rounded-lg text-account-text-primary text-[15px] box-border font-inherit focus:outline-none focus:border-account-accent focus:shadow-[0_0_0_2px_rgba(243,191,26,0.3)] disabled:bg-[#2a2a2a] disabled:text-account-text-secondary disabled:cursor-not-allowed",
+    "w-full px-3 py-3 bg-account-bg-tertiary border border-account-border rounded-lg text-account-text-primary text-[15px] box-border font-inherit focus:outline-none focus:border-account-accent focus:shadow-[0_0_0_2px_rgb(var(--ui-loading)/0.3)] disabled:bg-[#2a2a2a] disabled:text-account-text-secondary disabled:cursor-not-allowed",
   hint: "block mt-1.5 text-xs text-account-text-secondary",
   error: "block mt-1.5 text-xs text-[#ff6b6b]",
 };

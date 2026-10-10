@@ -39,9 +39,9 @@ const EffectCard = ({ effect, onEquip, onBuy, isEquipping }) => {
       ref={cardRef}
       className={`group relative overflow-hidden rounded-2xl border bg-white/[0.04] p-4 transition-all duration-300 backdrop-blur-sm ${
         effect.isEquipped
-          ? "border-[#ffd875]/50 bg-[#ffd875]/[0.06] shadow-[0_0_20px_rgba(255,216,117,0.1)]"
+          ? "border-primaryColor/50 bg-primaryColor/[0.06] shadow-[0_0_20px_rgb(var(--ui-primary)/0.1)]"
           : effect.isOwned
-            ? "border-white/10 hover:border-[#ffd875]/30 hover:bg-white/[0.06]"
+            ? "border-white/10 hover:border-primaryColor/30 hover:bg-white/[0.06]"
             : "border-white/10 opacity-70 hover:opacity-90"
       }`}
     >
@@ -55,7 +55,7 @@ const EffectCard = ({ effect, onEquip, onBuy, isEquipping }) => {
 
       {/* Equipped badge */}
       {effect.isEquipped && (
-        <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-[#ffd875]/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#ffd875]">
+        <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-primaryColor/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primaryColor">
           <i className="fa-solid fa-check" />
           <span>Đang dùng</span>
         </div>
@@ -97,7 +97,7 @@ const EffectCard = ({ effect, onEquip, onBuy, isEquipping }) => {
         {effect.isEquipped ? (
           <button
             disabled
-            className="w-full cursor-default rounded-xl border border-[#ffd875]/20 bg-[#ffd875]/10 py-2.5 text-sm font-semibold text-[#ffd875]"
+            className="w-full cursor-default rounded-xl border border-primaryColor/20 bg-primaryColor/10 py-2.5 text-sm font-semibold text-primaryColor"
           >
             <i className="fa-solid fa-check mr-2" />
             Đang sử dụng
@@ -106,7 +106,7 @@ const EffectCard = ({ effect, onEquip, onBuy, isEquipping }) => {
           <button
             onClick={() => onEquip(effect.effectId)}
             disabled={isEquipping}
-            className="w-full cursor-pointer rounded-xl border border-[#ffd875]/30 bg-[#ffd875]/10 py-2.5 text-sm font-semibold text-[#ffd875] transition-all hover:bg-[#ffd875]/20"
+            className="w-full cursor-pointer rounded-xl border border-primaryColor/30 bg-primaryColor/10 py-2.5 text-sm font-semibold text-primaryColor transition-all hover:bg-primaryColor/20"
           >
             <i className="fa-solid fa-rocket mr-2" />
             {isEquipping ? "Đang trang bị..." : "Trang bị"}

@@ -178,7 +178,7 @@ const WatchStreak = ({ compact = false }) => {
               fill="currentColor"
               className={
                 currentStreak > 0
-                  ? "text-primaryColor drop-shadow-[0_0_4px_rgba(255,216,117,0.6)]"
+                  ? "text-primaryColor drop-shadow-[0_0_4px_rgb(var(--ui-primary)/0.6)]"
                   : "text-gray-400"
               }
             >
@@ -319,7 +319,7 @@ const StreakCard = ({
                 className={
                   isZero
                     ? "text-gray-500"
-                    : "text-primaryColor drop-shadow-[0_0_6px_rgba(255,216,117,0.5)]"
+                    : "text-primaryColor drop-shadow-[0_0_6px_rgb(var(--ui-primary)/0.5)]"
                 }
               >
                 <path d="M12 2c0 0-5 6.5-5 11a5 5 0 0 0 10 0c0-4.5-5-11-5-11zm0 14.5a2.5 2.5 0 0 1-2.5-2.5c0-1.5 2.5-5.5 2.5-5.5s2.5 4 2.5 5.5a2.5 2.5 0 0 1-2.5 2.5z" />
@@ -408,7 +408,7 @@ const StreakCard = ({
                       transition-all duration-300
                       ${
                         isStreakDay
-                          ? "bg-primaryColor text-black shadow-[0_0_10px_rgba(255,216,117,0.5)]"
+                          ? "bg-primaryColor text-black shadow-[0_0_10px_rgb(var(--ui-primary)/0.5)]"
                           : isToday && isActiveToday
                             ? "bg-primaryColor/30 border border-primaryColor/40 text-primaryColor"
                             : isToday
@@ -490,7 +490,7 @@ const StreakCard = ({
               className={`h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden
                 ${
                   isActiveToday
-                    ? "bg-gradient-to-r from-primaryColor to-yellow-300 shadow-[0_0_10px_rgba(255,216,117,0.5)]"
+                    ? "bg-gradient-to-r from-primaryColor to-yellow-300 shadow-[0_0_10px_rgb(var(--ui-primary)/0.5)]"
                     : "bg-gradient-to-r from-primaryColor/70 to-primaryColor/90"
                 }
               `}

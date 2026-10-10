@@ -146,7 +146,7 @@ const ContinueWatching = () => {
             <h2 className="text-xl sm:text-2xl font-bold text-white">Xem tiếp của bạn</h2>
           </div>
         </div>
-        <BarSpinner className="py-4" />
+        <BarSpinner className="w-full py-4" />
       </section>
     );
   }

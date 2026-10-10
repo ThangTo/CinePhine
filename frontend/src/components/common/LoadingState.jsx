@@ -1,6 +1,7 @@
 import React, { useContext } from "react";
 import ThemeContext from "contexts/ThemeContext";
 import SnowmanLoader from "./SnowmanLoader";
+import GhostLoader from "./GhostLoader";
 
 export const BarSpinner = ({ message = "Đang xử lý...", className = "" }) => (
   <span role="status" aria-label={message} className={`inline-flex items-center justify-center ${className}`}>
@@ -12,13 +13,14 @@ export const BarSpinner = ({ message = "Đang xử lý...", className = "" }) =>
 
 export const PageSpinner = ({ message = "Đang tải...", className = "" }) => {
   const context = useContext(ThemeContext);
-  const snowman = context?.theme.loader === "snowman";
-  return snowman ? (
+  const loader = context?.theme.loader;
+  if (loader !== "snowman" && loader !== "ghost") return <BarSpinner message={message} className={className} />;
+  return (
     <div role="status" aria-live="polite" className={`flex flex-col items-center gap-1 ${className}`}>
-      <SnowmanLoader showTrail />
+      {loader === "ghost" ? <GhostLoader /> : <SnowmanLoader showTrail />}
       <span className="sr-only">{message}</span>
     </div>
-  ) : <BarSpinner message={message} className={className} />;
+  );
 };
 
 export const InlineSpinner = ({ message = "Đang tải...", className = "" }) => (

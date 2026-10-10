@@ -6,7 +6,9 @@ import logoMainTrans from "assets/images/logo_main_trans.png";
 
 const SiteFooter = () => {
   return (
-    <footer className="bg-bgColor4 ">
+    <footer className="bg-bgColor4 relative isolate overflow-hidden">
+      {/* Halloween theme paints its night landscape into this slot */}
+      <div className="halloween-nightscape" aria-hidden="true" />
       <div className="w-full px-4 py-10 mx-auto">
         {/* Footer Element - Main Content */}
         <div className="footer-element flex flex-col lg:flex-row items-center justify-center gap-8 mx-auto">
@@ -18,7 +20,7 @@ const SiteFooter = () => {
                 <img
                   src={logoMainTrans}
                   alt="CinePhine"
-                  className="w-16 h-16 object-cover object-center"
+                  className="site-header-logo w-16 h-16 object-cover object-center"
                   loading="lazy"
                   decoding="async"
                 />
@@ -26,7 +28,7 @@ const SiteFooter = () => {
               <div>
                 <h3 className="text-2xl font-extrabold text-white mb-1">
                   <span className="text-white">Cine</span>
-                  <span className="text-cyan-400">Phine</span>
+                  <span className="site-brand-accent text-cyan-400">Phine</span>
                 </h3>
                 <p className="text-sm text-gray-400">Phim hay có rồi</p>
               </div>

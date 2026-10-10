@@ -47,6 +47,15 @@ test("saving Christmas immediately updates the public theme and reveals the togg
   expect(screen.getByTitle("Tắt theme")).toBeTruthy();
   expect(document.documentElement.style.getPropertyValue("--ui-primary")).toBe("23 96 68");
   expect(document.documentElement.style.getPropertyValue("--ui-on-primary")).toBe("255 255 255");
+  expect(localStorage.getItem("siteTheme")).toBe("christmas");
+});
+
+test("first render uses the last known theme while the server is still answering", () => {
+  localStorage.setItem("siteTheme", "halloween");
+  apiRequest.mockImplementationOnce(() => new Promise(() => {}));
+  render(<ThemeProvider><ThemeState /></ThemeProvider>);
+  expect(screen.getByTestId("theme-state").textContent).toBe("halloween/halloween");
+  expect(document.documentElement.getAttribute("data-site-theme")).toBe("halloween");
 });
 
 test("saving a theme preserves a visitor's disabled preference", async () => {

@@ -172,7 +172,7 @@ const SectionRow = ({
         <div className="px-4">
           <SectionHeader title={title} subtitle={subtitle} linkHref={linkHref} />
         </div>
-        <BarSpinner className="py-4" />
+        <BarSpinner className="w-full py-4" />
       </section>
     );
   }

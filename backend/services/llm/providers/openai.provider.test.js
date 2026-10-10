@@ -22,6 +22,22 @@ test('OpenAI provider builds body with model and payload', () => {
   assert.deepEqual(body.messages, [{ role: 'user', content: 'hi' }]);
 });
 
+test('OpenAI provider preserves vision image_url message parts', () => {
+  const provider = new OpenAICompatibleProvider('compatible');
+  const messages = [{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'Describe this image' },
+      { type: 'image_url', image_url: { url: 'data:image/png;base64,abc' } },
+    ],
+  }];
+
+  const body = provider.buildBody({ messages }, 'vision-model');
+
+  assert.equal(body.model, 'vision-model');
+  assert.deepEqual(body.messages, messages);
+});
+
 test('OpenAI provider builds Bearer auth header', () => {
   const provider = new OpenAICompatibleProvider('openai');
   const headers = provider.buildHeaders({ apiKey: 'sk-test' });

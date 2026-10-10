@@ -58,7 +58,7 @@ const Top10Movie = ({ title, linkHref, type = null }) => {
     return (
       <section className="w-full py-2 sm:py-6">
         <SectionHeader title={title} linkHref={linkHref} className="px-6" />
-        <BarSpinner className="pl-6 sm:px-6 py-2" />
+        <BarSpinner className="w-full py-2" />
       </section>
     );
   }

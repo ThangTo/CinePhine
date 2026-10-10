@@ -41,7 +41,7 @@ module.exports = {
             primary: "#e0e0e0",
             secondary: "#a0a0a0",
           },
-          accent: "#f3bf1a",
+          accent: "rgb(var(--ui-loading, 243 191 26) / <alpha-value>)",
           border: "#333333",
         },
       },

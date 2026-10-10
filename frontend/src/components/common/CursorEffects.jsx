@@ -11,6 +11,7 @@ import "effects/galaxy";
 import "effects/firefly";
 import "effects/crystal";
 import "effects/sakura";
+import "effects/halloween";
 
 const CursorEffects = ({ activeEffectId }) => {
   const canvasRef = useRef(null);

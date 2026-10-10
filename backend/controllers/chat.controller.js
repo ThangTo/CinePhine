@@ -4,7 +4,7 @@ const Chat = require('../models/chat.model');
 const handleChat = async (req, res) => {
     try{
         const userId = req.user?._id || null;
-        const {message, history, metadata, sessionId} = req.body;
+        const {message, history, metadata, sessionId, attachments} = req.body;
 
         const answer = await chatService.handleChat({
             userId, 
@@ -12,6 +12,7 @@ const handleChat = async (req, res) => {
             history,
             metadata,
             sessionId,
+            attachments,
         });
         
         res.json({answer});
@@ -39,7 +40,7 @@ const handleChatStream = async (req, res) => {
 
     try {
         const userId = req.user?._id || null;
-        const {message, history, metadata, sessionId} = req.body;
+        const {message, history, metadata, sessionId, attachments} = req.body;
 
         const result = await chatService.handleChatStream({
             userId,
@@ -47,6 +48,7 @@ const handleChatStream = async (req, res) => {
             history,
             metadata,
             sessionId,
+            attachments,
             onToken: (content) => writeStreamEvent(res, { type: 'token', content }),
         });
 

@@ -301,7 +301,7 @@ const AccountPage = () => {
                         onClick={() => navigate(`/account?tabs=${item.tab}`)}
                         className={`shrink-0 rounded-[20px] border px-3 py-3 text-left transition-all ${
                           isActive
-                            ? "border-primaryColor bg-primaryColor text-black shadow-[0_12px_28px_rgba(243,191,26,0.28)]"
+                            ? "border-primaryColor bg-primaryColor text-black shadow-[0_12px_28px_rgb(var(--ui-loading)/0.28)]"
                             : "border-account-border bg-account-bg-primary/65 text-account-text-secondary"
                         }`}
                       >

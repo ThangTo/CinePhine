@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { getSystemInstruction } from "constants/chatbotKnowledge";
 import { useTheme } from "contexts/ThemeContext";
 import SnowmanLoader from "components/common/SnowmanLoader";
+import HalloweenCat from "components/common/HalloweenCat";
 
 const EMOJI_MART_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js";
 let emojiMartLoadPromise = null;
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
 const STREAM_PAINT_DELAY_MS = 16;
+const MAX_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024;
 
 function loadEmojiMart() {
   if (typeof window === "undefined") return Promise.resolve();
@@ -182,6 +184,7 @@ const Chatbot = () => {
   const navigate = useNavigate();
   const { currentTheme } = useTheme();
   const isChristmas = currentTheme === "christmas";
+  const isHalloween = currentTheme === "halloween";
   const chatBodyRef = useRef(null);
   const messageInputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -324,6 +327,9 @@ const Chatbot = () => {
         history: historyForBackend,
         metadata: buildChatMetadata(),
         sessionId: sessionIdRef.current,
+        ...(fileData
+          ? { attachments: [{ type: "image", mime_type: fileData.mime_type, data: fileData.data }] }
+          : {}),
       };
 
       const { answerHTML, plainText } = await sendChatMessageWithStream(
@@ -403,6 +409,11 @@ const Chatbot = () => {
       const validImageTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
       if (!validImageTypes.includes(file.type)) {
         alert("Chỉ chấp nhận file ảnh (JPEG, PNG, GIF, WEBP)");
+        resetFileInput();
+        return;
+      }
+      if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+        alert("Image must be 5MB or smaller");
         resetFileInput();
         return;
       }
@@ -505,13 +516,13 @@ const Chatbot = () => {
         ref={chatbotTogglerRef}
         onClick={() => setShowChatbot(!showChatbot)}
         className={`hidden sm:fixed bottom-4 md:bottom-6 right-5 md:right-8 h-14 w-14 sm:flex items-center justify-center rounded-full shadow-[0_0_20px_rgba(var(--primary-color-rgb),0.4)] transition-all duration-300 z-[100005] hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(var(--primary-color-rgb),0.5)] ${
-          showChatbot ? "rotate-90 bg-bgColor2/90 border border-white/10" : isChristmas ? "chatbot-snowman-toggle" : "bg-primaryColor"
+          showChatbot ? "rotate-90 bg-bgColor2/90 border border-white/10" : isChristmas ? "chatbot-snowman-toggle" : isHalloween ? "chatbot-cat-toggle" : "bg-primaryColor"
         }`}
       >
         <span
           className={`absolute transition-all duration-300 ${showChatbot ? "opacity-0 scale-0 rotate-180" : "opacity-100 scale-100 rotate-0"}`}
         >
-          {isChristmas ? <span className="chatbot-snowman"><SnowmanLoader /></span> : <svg
+          {isChristmas ? <span className="chatbot-snowman"><SnowmanLoader /></span> : isHalloween ? <HalloweenCat /> : <svg
             className="w-7 h-7 fill-gray-900 drop-shadow-md"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1024 1024"

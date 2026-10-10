@@ -88,6 +88,7 @@ async function getCoinHistory(userId, { page = 1, limit = 20 } = {}) {
 
   const [entries, total] = await Promise.all([
     CoinLedger.find(query)
+      .sort({ createdAt: -1, _id: -1 })
       .skip((normalizedPage - 1) * normalizedLimit)
       .limit(normalizedLimit),
     CoinLedger.countDocuments(query),

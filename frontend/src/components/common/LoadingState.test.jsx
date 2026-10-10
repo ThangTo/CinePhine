@@ -11,6 +11,13 @@ test("Christmas page loading uses a snowman and accessible status", () => {
   expect(screen.getByRole("status").textContent).toContain("Đang tải");
 });
 
+test("Halloween page loading uses the ghost loader", () => {
+  const { container } = render(<ThemeContext.Provider value={{ theme: themes.halloween }}><LoadingState /></ThemeContext.Provider>);
+  expect(container.querySelector(".ghost-loader")).toBeTruthy();
+  expect(container.querySelector(".snowman-loader")).toBeNull();
+  expect(screen.getByRole("status").textContent).toContain("Đang tải");
+});
+
 test("turning the theme off restores the default loader", () => {
   const { container, rerender } = render(<ThemeContext.Provider value={{ theme: themes.christmas }}><LoadingState /></ThemeContext.Provider>);
   rerender(<ThemeContext.Provider value={{ theme: themes.default }}><LoadingState /></ThemeContext.Provider>);

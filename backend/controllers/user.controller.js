@@ -458,7 +458,7 @@ const upgradePremium = async (req, res) => {
       reason: 'premium_upgrade',
       sourceType: 'premium_plan',
       sourceId: plan,
-      note: `Nang cap goi Premium ${plan}`,
+      note: `Nâng cấp gói Premium ${plan}`,
       metadata: {
         plan,
         days: planConfig.days,

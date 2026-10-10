@@ -7,6 +7,9 @@ const mongoose = require('mongoose');
 const { complete, stream } = require('./llm');
 const { isRateLimitError } = require('./llm/errors');
 
+const MAX_IMAGE_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
 const SYSTEM_PROMPT =
   process.env.CHATBOT_SYSTEM_PROMPT ||
   `Bạn là trợ lý AI thân thiện của nền tảng xem phim CinePhine.
@@ -74,6 +77,60 @@ function detectIntentByKeyword(message = '') {
     return 'movie_info';
   }
   return 'general';
+}
+
+function normalizeImageAttachmentData(data) {
+  const value = String(data || '').trim();
+  if (!value) throw new Error('Image attachment data is required');
+
+  const base64 = value.includes(',') ? value.split(',').pop().trim() : value;
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(base64) || base64.length % 4 === 1) {
+    throw new Error('Invalid image attachment data');
+  }
+
+  const decoded = Buffer.from(base64, 'base64');
+  if (decoded.length === 0) throw new Error('Invalid image attachment data');
+  if (decoded.length > MAX_IMAGE_ATTACHMENT_BYTES) {
+    throw new Error('Image attachment exceeds 5MB limit');
+  }
+
+  return base64;
+}
+
+function normalizeChatAttachments(attachments = []) {
+  if (!attachments) return [];
+  if (!Array.isArray(attachments)) {
+    throw new Error('Chat attachments must be an array');
+  }
+  if (attachments.length > 1) {
+    throw new Error('Only one image attachment is supported');
+  }
+
+  return attachments.map((attachment) => {
+    const type = attachment?.type || 'image';
+    if (type !== 'image') throw new Error(`Unsupported attachment type: ${type}`);
+
+    const mimeType = String(attachment?.mime_type || attachment?.mimeType || '').toLowerCase();
+    if (!ALLOWED_IMAGE_MIME_TYPES.has(mimeType)) {
+      throw new Error(`Unsupported image type: ${mimeType || 'unknown'}`);
+    }
+
+    return {
+      type: 'image',
+      mime_type: mimeType,
+      data: normalizeImageAttachmentData(attachment?.data),
+    };
+  });
+}
+
+function buildUserPromptText(userQuery, dbContext, hasImageAttachment = false) {
+  const trimmedQuery = String(userQuery || '').trim();
+  const isImageOnlyPlaceholder = ['Gửi một ảnh', 'Gá»­i má»™t áº£nh'].includes(trimmedQuery);
+  const effectiveQuery = hasImageAttachment && (!trimmedQuery || isImageOnlyPlaceholder)
+    ? 'Hãy mô tả ảnh này và trả lời theo ngữ cảnh CinePhine nếu ảnh liên quan đến phim.'
+    : trimmedQuery;
+
+  return `[USER_QUERY]\n${effectiveQuery}\n\n[DB_CONTEXT]\n${JSON.stringify(dbContext, null, 2)}`;
 }
 
 // ============================================
@@ -155,8 +212,9 @@ async function classifyIntentWithLlm(message) {
 // ============================================
 // MAIN LLM CALLER
 // ============================================
-function buildChatMessages({ userQuery, dbContext, history = [] }) {
+function buildChatMessages({ userQuery, dbContext, history = [], attachments = [] }) {
   const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
+  const normalizedAttachments = normalizeChatAttachments(attachments);
 
   if (history && history.length > 0) {
     history.slice(-10).forEach((msg) => {
@@ -167,9 +225,22 @@ function buildChatMessages({ userQuery, dbContext, history = [] }) {
     });
   }
 
+  const userPrompt = buildUserPromptText(userQuery, dbContext, normalizedAttachments.length > 0);
+  const userContent = normalizedAttachments.length > 0
+    ? [
+      { type: 'text', text: userPrompt },
+      ...normalizedAttachments.map((attachment) => ({
+        type: 'image_url',
+        image_url: {
+          url: `data:${attachment.mime_type};base64,${attachment.data}`,
+        },
+      })),
+    ]
+    : userPrompt;
+
   messages.push({
     role: 'user',
-    content: `[USER_QUERY]\n${userQuery}\n\n[DB_CONTEXT]\n${JSON.stringify(dbContext, null, 2)}`,
+    content: userContent,
   });
 
   return messages;
@@ -179,13 +250,14 @@ async function callLLMWithFallback({
   userQuery,
   dbContext,
   history = [],
+  attachments = [],
   model = null,
   llmComplete = complete,
 }) {
   const data = await llmComplete({
     scope: 'CHATBOT',
     ...(model ? { model } : {}),
-    messages: buildChatMessages({ userQuery, dbContext, history }),
+    messages: buildChatMessages({ userQuery, dbContext, history, attachments }),
     temperature: 0.7,
   });
 
@@ -197,11 +269,12 @@ async function callLLMStreamWithFallback({
   userQuery,
   dbContext,
   history = [],
+  attachments = [],
   onToken,
   llmStream = stream,
   llmComplete = complete,
 }) {
-  const messages = buildChatMessages({ userQuery, dbContext, history });
+  const messages = buildChatMessages({ userQuery, dbContext, history, attachments });
   let streamedText = '';
 
   try {
@@ -230,7 +303,7 @@ async function callLLMStreamWithFallback({
     return content.replace(/\*\*/g, '');
   } catch (error) {
     if (streamedText) throw error;
-    return callLLMWithFallback({ userQuery, dbContext, history, llmComplete });
+    return callLLMWithFallback({ userQuery, dbContext, history, attachments, llmComplete });
   }
 }
 
@@ -622,10 +695,13 @@ async function prepareChatRequest({
   history,
   metadata,
   sessionId,
+  attachments = [],
   chatModel = Chat,
   classifyIntent = classifyIntentWithLlm,
   buildDbContext = buildDbContextForMovieIntent,
 }) {
+  const normalizedAttachments = normalizeChatAttachments(attachments);
+
   // 1. Load or create chat session
   let chatSession = null;
   try {
@@ -710,22 +786,34 @@ async function prepareChatRequest({
     dbContext = { note: 'general question, no movie-specific DB context' };
   }
 
-  return { chatSession, history, intent, dbContext };
+  return { chatSession, history, intent, dbContext, attachments: normalizedAttachments };
 }
 
-async function handleChat({ userId, message, history, metadata, sessionId }) {
-  const { chatSession, history: resolvedHistory, intent, dbContext } = await prepareChatRequest({
+async function handleChat({ userId, message, history, metadata, sessionId, attachments }) {
+  const {
+    chatSession,
+    history: resolvedHistory,
+    intent,
+    dbContext,
+    attachments: normalizedAttachments,
+  } = await prepareChatRequest({
     userId,
     message,
     history,
     metadata,
     sessionId,
+    attachments,
   });
 
   // 5. Generate response using fallback chain
   let answer;
   try {
-    answer = await callLLMWithFallback({ userQuery: message, dbContext, history: resolvedHistory });
+    answer = await callLLMWithFallback({
+      userQuery: message,
+      dbContext,
+      history: resolvedHistory,
+      attachments: normalizedAttachments,
+    });
   } catch (error) {
     console.error('All LLM providers failed:', error.message);
     const fallbackPrefix =
@@ -767,6 +855,7 @@ async function handleChatStream({
   history,
   metadata,
   sessionId,
+  attachments,
   onToken,
   chatModel = Chat,
   llmStream = stream,
@@ -774,12 +863,19 @@ async function handleChatStream({
   classifyIntent = classifyIntentWithLlm,
   buildDbContext = buildDbContextForMovieIntent,
 }) {
-  const { chatSession, history: resolvedHistory, intent, dbContext } = await prepareChatRequest({
+  const {
+    chatSession,
+    history: resolvedHistory,
+    intent,
+    dbContext,
+    attachments: normalizedAttachments,
+  } = await prepareChatRequest({
     userId,
     message,
     history,
     metadata,
     sessionId,
+    attachments,
     chatModel,
     classifyIntent,
     buildDbContext,
@@ -791,6 +887,7 @@ async function handleChatStream({
       userQuery: message,
       dbContext,
       history: resolvedHistory,
+      attachments: normalizedAttachments,
       onToken,
       llmStream,
       llmComplete,

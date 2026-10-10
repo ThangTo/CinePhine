@@ -178,7 +178,7 @@ const handleWebhook = async (webhook) => {
       reason: 'payment_success',
       sourceType: 'payment',
       sourceId: transaction._id,
-      note: `Nap coin thanh cong tu don hang ${transaction.orderCode}`,
+      note: `Nạp coin thành công từ đơn hàng ${transaction.orderCode}`,
       metadata: {
         orderCode: transaction.orderCode,
         packageId: resolvedAward.packageId || transaction.packageId || null,

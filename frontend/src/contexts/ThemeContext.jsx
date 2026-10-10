@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import apiRequest from "services/utils/apiRequest";
 import { hexToRgbChannels } from "utils/colorUtils";
 
@@ -6,6 +6,7 @@ import { hexToRgbChannels } from "utils/colorUtils";
  * ThemeContext - Provides theme state and methods throughout the app
  */
 const ThemeContext = createContext(null);
+const SAVED_THEME_KEY = "siteTheme";
 
 /**
  * Theme definitions
@@ -92,6 +93,29 @@ export const themes = {
       bells: true,
     },
   },
+  halloween: {
+    name: "halloween",
+    displayName: "Halloween",
+    loader: "ghost",
+    colors: {
+      primary: "#ff7a1a", // Pumpkin orange
+      primaryHover: "#ff8f3d",
+      primaryText: "#ffa65c",
+      onPrimary: "#1f0e04",
+      background: "#0e0a12",
+      surface: "#1a1320",
+      text: "#f5ede6",
+      textSecondary: "#c9b8a8",
+      border: "#3a2a3f",
+      accent: "#8f6bd6", // Witchy violet
+    },
+    decorations: {
+      enabled: true,
+      particles: true,
+      animations: true,
+      backgroundPattern: "halloween-background",
+    },
+  },
   newyear: {
     name: "newyear",
     displayName: "Năm Mới",
@@ -155,7 +179,12 @@ export const ThemeProvider = ({ children }) => {
   const previewTheme = process.env.NODE_ENV === "development"
     ? new URLSearchParams(window.location.search).get("themePreview")
     : null;
-  const [serverTheme, setServerTheme] = useState("default"); // Theme từ server (không thay đổi khi toggle)
+  // Theme từ server (không thay đổi khi toggle). Start from the last known theme so the
+  // first paint (route loader, colors) is already themed before /meta/theme answers.
+  const [serverTheme, setServerTheme] = useState(() => {
+    const saved = previewTheme || localStorage.getItem(SAVED_THEME_KEY);
+    return Object.prototype.hasOwnProperty.call(themes, saved) ? saved : "default";
+  });
   const [isThemeEnabled, setIsThemeEnabled] = useState(() => {
     // Load from localStorage, default to true
     const saved = localStorage.getItem("themeEnabled");
@@ -204,6 +233,10 @@ export const ThemeProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [previewTheme]);
 
+  useEffect(() => {
+    if (!previewTheme) localStorage.setItem(SAVED_THEME_KEY, serverTheme);
+  }, [previewTheme, serverTheme]);
+
   // Toggle theme on/off
   const toggleTheme = useCallback(() => {
     const newState = !isThemeEnabled;
@@ -217,7 +250,8 @@ export const ThemeProvider = ({ children }) => {
   const allThemes = themes;
 
   // Root variables also reach route fallbacks and portals outside MainLayout.
-  useEffect(() => {
+  // Layout effect: set before the first paint so the loader never shows default colors.
+  useLayoutEffect(() => {
     const colors = theme.colors;
     const isDefault = currentTheme === "default";
     const tokens = {

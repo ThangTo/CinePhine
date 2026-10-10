@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { BannerContent, BannerBackground, useBannerConfig } from "components/banner/index";
 import movieService from "services/movie.service";
-import { BarSpinner } from "components/common/LoadingState";
+import { PageSpinner } from "components/common/LoadingState";
 import { preloadImages } from "utils/imagePreloader";
 import OptimizedImage from "components/common/OptimizedImage";
 import useToast from "hooks/useToast";
@@ -188,7 +188,7 @@ const BannerHome = ({ movie }) => {
   if (loading || !currentMovie) {
     return (
       <section className="relative w-full overflow-hidden z-0 mt-[var(--app-header-total-height)] md:mt-0 h-[400px] md:h-[600px] flex items-center justify-center">
-        <BarSpinner />
+        <PageSpinner />
       </section>
     );
   }
@@ -212,6 +212,7 @@ const BannerHome = ({ movie }) => {
         ]}
         title={currentMovie.title}
       />
+      <div className="halloween-flashlight" aria-hidden="true" />
 
       {/* Main content */}
       <BannerContent

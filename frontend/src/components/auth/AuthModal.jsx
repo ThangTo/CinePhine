@@ -310,7 +310,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
           <div className="relative z-10 p-10 flex flex-col justify-end items-start h-full text-white w-full">
-            <div className="w-16 h-1.5 bg-primaryColor rounded-full mb-6 shadow-[0_0_10px_rgba(255,216,117,0.6)]"></div>
+            <div className="w-16 h-1.5 bg-primaryColor rounded-full mb-6 shadow-[0_0_10px_rgb(var(--ui-primary)/0.6)]"></div>
             <h1 className="text-4xl font-extrabold mb-4 tracking-wider drop-shadow-lg">
               CINEPHINE
             </h1>
@@ -450,7 +450,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
 
                 <button
                   disabled={isLoading}
-                  className="w-full py-4 bg-primaryColor hover:bg-hoverPrimaryColor text-black font-bold rounded-xl shadow-[0_0_20px_rgba(255,216,117,0.3)] hover:shadow-[0_0_25px_rgba(255,216,117,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2 active:scale-[0.98]"
+                  className="w-full py-4 bg-primaryColor hover:bg-hoverPrimaryColor text-black font-bold rounded-xl shadow-[0_0_20px_rgb(var(--ui-primary)/0.3)] hover:shadow-[0_0_25px_rgb(var(--ui-primary)/0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2 active:scale-[0.98]"
                 >
                   {isLoading ? <i className="fas fa-spinner fa-spin mr-2"></i> : "Đăng nhập"}
                 </button>
@@ -537,7 +537,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
 
                 <button
                   disabled={isLoading}
-                  className="w-full py-4 bg-primaryColor hover:bg-hoverPrimaryColor text-black font-bold rounded-xl shadow-[0_0_20px_rgba(255,216,117,0.3)] hover:shadow-[0_0_25px_rgba(255,216,117,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4 active:scale-[0.98]"
+                  className="w-full py-4 bg-primaryColor hover:bg-hoverPrimaryColor text-black font-bold rounded-xl shadow-[0_0_20px_rgb(var(--ui-primary)/0.3)] hover:shadow-[0_0_25px_rgb(var(--ui-primary)/0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4 active:scale-[0.98]"
                 >
                   {isLoading ? <i className="fas fa-spinner fa-spin mr-2"></i> : "Tiếp tục"}
                 </button>
@@ -568,7 +568,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
 
                 <button
                   disabled={isLoading}
-                  className="w-full py-4 bg-primaryColor hover:bg-hoverPrimaryColor text-black font-bold rounded-xl shadow-[0_0_20px_rgba(255,216,117,0.3)] hover:shadow-[0_0_25px_rgba(255,216,117,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4 active:scale-[0.98]"
+                  className="w-full py-4 bg-primaryColor hover:bg-hoverPrimaryColor text-black font-bold rounded-xl shadow-[0_0_20px_rgb(var(--ui-primary)/0.3)] hover:shadow-[0_0_25px_rgb(var(--ui-primary)/0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4 active:scale-[0.98]"
                 >
                   {isLoading ? <i className="fas fa-spinner fa-spin mr-2"></i> : "Gửi mã OTP"}
                 </button>
@@ -641,7 +641,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
                   </button>
                   <button
                     disabled={isLoading}
-                    className="w-2/3 py-4 bg-primaryColor hover:bg-hoverPrimaryColor text-black font-bold rounded-xl shadow-[0_0_20px_rgba(255,216,117,0.3)] hover:shadow-[0_0_25px_rgba(255,216,117,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                    className="w-2/3 py-4 bg-primaryColor hover:bg-hoverPrimaryColor text-black font-bold rounded-xl shadow-[0_0_20px_rgb(var(--ui-primary)/0.3)] hover:shadow-[0_0_25px_rgb(var(--ui-primary)/0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                   >
                     {isLoading ? <i className="fas fa-spinner fa-spin"></i> : "Xác nhận"}
                   </button>
@@ -666,7 +666,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
                       value={formData.otp[index] || ""}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className="w-[45px] h-[55px] sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold bg-white/5 border border-white/10 rounded-xl text-white focus:bg-white/10 focus:border-primaryColor focus:shadow-[0_0_15px_rgba(255,216,117,0.2)] outline-none transition-all shadow-inner placeholder-white/20"
+                      className="w-[45px] h-[55px] sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold bg-white/5 border border-white/10 rounded-xl text-white focus:bg-white/10 focus:border-primaryColor focus:shadow-[0_0_15px_rgb(var(--ui-primary)/0.2)] outline-none transition-all shadow-inner placeholder-white/20"
                       placeholder="-"
                       autoComplete="one-time-code"
                     />
@@ -696,7 +696,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
                   </button>
                   <button
                     disabled={isLoading || formData.otp.length < 6}
-                    className="w-2/3 py-4 bg-primaryColor hover:bg-hoverPrimaryColor text-black font-bold rounded-xl shadow-[0_0_20px_rgba(255,216,117,0.3)] hover:shadow-[0_0_25px_rgba(255,216,117,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                    className="w-2/3 py-4 bg-primaryColor hover:bg-hoverPrimaryColor text-black font-bold rounded-xl shadow-[0_0_20px_rgb(var(--ui-primary)/0.3)] hover:shadow-[0_0_25px_rgb(var(--ui-primary)/0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                   >
                     {isLoading ? <i className="fas fa-spinner fa-spin"></i> : "Xác nhận"}
                   </button>
@@ -721,7 +721,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
                       value={formData.otp[index] || ""}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className="w-[45px] h-[55px] sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold bg-white/5 border border-white/10 rounded-xl text-white focus:bg-white/10 focus:border-primaryColor focus:shadow-[0_0_15px_rgba(255,216,117,0.2)] outline-none transition-all shadow-inner placeholder-white/20"
+                      className="w-[45px] h-[55px] sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold bg-white/5 border border-white/10 rounded-xl text-white focus:bg-white/10 focus:border-primaryColor focus:shadow-[0_0_15px_rgb(var(--ui-primary)/0.2)] outline-none transition-all shadow-inner placeholder-white/20"
                       placeholder="-"
                       autoComplete="one-time-code"
                     />
@@ -751,7 +751,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
                   </button>
                   <button
                     disabled={isLoading || formData.otp.length < 6}
-                    className="w-2/3 py-4 bg-primaryColor hover:bg-hoverPrimaryColor text-black font-bold rounded-xl shadow-[0_0_20px_rgba(255,216,117,0.3)] hover:shadow-[0_0_25px_rgba(255,216,117,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                    className="w-2/3 py-4 bg-primaryColor hover:bg-hoverPrimaryColor text-black font-bold rounded-xl shadow-[0_0_20px_rgb(var(--ui-primary)/0.3)] hover:shadow-[0_0_25px_rgb(var(--ui-primary)/0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                   >
                     {isLoading ? <i className="fas fa-spinner fa-spin"></i> : "Tiếp tục"}
                   </button>

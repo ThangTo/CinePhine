@@ -92,7 +92,7 @@ const QuestCard = ({ quest, onClaim, onGoNow, isClaiming = false }) => {
     return (
       <div
         className={`${cardStyles.container} border-primaryColor/40 bg-primaryColor/5`}
-        style={{ boxShadow: "0 0 16px rgba(243,191,26,0.08)" }}
+        style={{ boxShadow: "0 0 16px rgb(var(--ui-loading)/0.08)" }}
       >
         <div className={`${cardStyles.body} flex items-center gap-4`}>
           <div className="w-12 h-12 rounded-xl bg-primaryColor/10 flex items-center justify-center flex-shrink-0">
@@ -146,7 +146,7 @@ const QuestCard = ({ quest, onClaim, onGoNow, isClaiming = false }) => {
           <div className="mt-2 h-1.5 bg-account-bg-tertiary rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${progress}%`, backgroundColor: "#f3bf1a" }}
+              style={{ width: `${progress}%`, backgroundColor: "rgb(var(--ui-loading))" }}
             />
           </div>
         </div>

@@ -221,7 +221,7 @@ const HeaderStat = ({ label, value, iconClassName, compact = false }) => (
     }`}
   >
     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-gray-400">
-      <i className={`fa-solid ${iconClassName} text-[#ffd875]`} />
+      <i className={`fa-solid ${iconClassName} text-primaryColor`} />
       <span>{label}</span>
     </div>
     <div
@@ -242,7 +242,7 @@ const InfoChip = ({
 }) => {
   const toneClassName =
     tone === "accent"
-      ? "border-[#ffd875]/20 bg-[#ffd875]/10 text-[#ffe7a8]"
+      ? "border-primaryColor/20 bg-primaryColor/10 text-[#ffe7a8]"
       : "border-white/10 bg-white/5 text-gray-200";
 
   return (
@@ -265,7 +265,7 @@ const MobileDetailsButton = ({ expanded, onToggle, className = "" }) => (
     type="button"
     onClick={onToggle}
     aria-expanded={expanded}
-    className={`inline-flex items-center gap-2 rounded-full border border-[#ffd875]/20 bg-[#ffd875]/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#ffe6a0] sm:hidden ${className}`}
+    className={`inline-flex items-center gap-2 rounded-full border border-primaryColor/20 bg-primaryColor/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#ffe6a0] sm:hidden ${className}`}
   >
     <span>{expanded ? "Ẩn chi tiết" : "Xem chi tiết"}</span>
     <i className={`fa-solid ${expanded ? "fa-chevron-up" : "fa-chevron-down"} text-[10px]`} />
@@ -284,7 +284,7 @@ const SectionHeader = ({ users, compact = false }) => {
     return (
       <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-2xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#ffd875]/20 bg-[#ffd875]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#ffe6a0]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primaryColor/20 bg-primaryColor/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#ffe6a0]">
             <i className="fa-solid fa-trophy" />
             <span>Bảng xếp hạng</span>
           </div>
@@ -367,7 +367,7 @@ const SectionHeader = ({ users, compact = false }) => {
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
       <div className="max-w-2xl">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#ffd875]/20 bg-[#ffd875]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#ffe6a0]">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primaryColor/20 bg-primaryColor/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#ffe6a0]">
           <i className="fa-solid fa-trophy" />
           <span>Bảng xếp hạng</span>
         </div>
@@ -406,12 +406,12 @@ const LeaderboardShell = ({ users, children, compact = false }) => (
   <section
     className={`relative mx-auto ${compact ? "w-full px-3 py-4 sm:px-6 sm:py-6" : "max-w-6xl px-4 py-10 sm:px-6"}`}
   >
-    <div className="absolute inset-x-8 top-20 h-40 rounded-full bg-[#ffd875]/10 blur-3xl" />
+    <div className="absolute inset-x-8 top-20 h-40 rounded-full bg-primaryColor/10 blur-3xl" />
     <div className="absolute right-10 top-28 h-44 w-44 rounded-full bg-[#22d3ee]/10 blur-3xl" />
 
     <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#0b1018] shadow-[0_35px_90px_rgba(0,0,0,0.45)]">
-      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,216,117,0.08),transparent_24%,transparent_72%,rgba(34,211,238,0.08))]" />
-      <div className="absolute left-[-80px] top-[-80px] h-56 w-56 rounded-full bg-[#ffd875]/10 blur-3xl" />
+      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgb(var(--ui-primary)/0.08),transparent_24%,transparent_72%,rgba(34,211,238,0.08))]" />
+      <div className="absolute left-[-80px] top-[-80px] h-56 w-56 rounded-full bg-primaryColor/10 blur-3xl" />
       <div className="absolute bottom-[-120px] right-[-80px] h-72 w-72 rounded-full bg-[#38bdf8]/10 blur-3xl" />
 
       {/* HIỆU ỨNG CANVAS ĐƯỢC CHÈN Ở ĐÂY VỚI Z-INDEX THẤP NHẤT */}
@@ -501,7 +501,7 @@ const LeaderboardRow = ({ user, rank, maxScore }) => {
   const progressWidth = maxScore > 0 ? Math.max(12, Math.round((score / maxScore) * 100)) : 12;
 
   return (
-    <article className="group relative z-10 rounded-[26px] border border-white/10 bg-white/[0.04] p-4 transition-all duration-300 hover:border-[#ffd875]/30 hover:bg-white/[0.06] backdrop-blur-sm">
+    <article className="group relative z-10 rounded-[26px] border border-white/10 bg-white/[0.04] p-4 transition-all duration-300 hover:border-primaryColor/30 hover:bg-white/[0.06] backdrop-blur-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#131927] text-lg font-black text-white ring-1 ring-white/10">
@@ -552,7 +552,7 @@ const LeaderboardRow = ({ user, rank, maxScore }) => {
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-white/5">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#ffd875] via-[#f59e0b] to-[#fb7185] transition-all duration-500"
+            className="h-full rounded-full bg-gradient-to-r from-primaryColor via-[#f59e0b] to-[#fb7185] transition-all duration-500"
             style={{ width: `${progressWidth}%` }}
           />
         </div>
@@ -642,7 +642,7 @@ const HorizontalRankCard = ({ user, rank, maxScore }) => {
   const progressWidth = maxScore > 0 ? Math.max(12, Math.round((score / maxScore) * 100)) : 12;
 
   return (
-    <article className="relative z-10 w-[74vw] max-w-[220px] shrink-0 snap-start rounded-[24px] border border-white/10 bg-white/[0.04] p-3.5 transition-all duration-300 hover:-translate-y-1 hover:border-[#ffd875]/30 hover:bg-white/[0.06] sm:w-[250px] sm:max-w-none sm:p-4 lg:w-[280px] backdrop-blur-sm">
+    <article className="relative z-10 w-[74vw] max-w-[220px] shrink-0 snap-start rounded-[24px] border border-white/10 bg-white/[0.04] p-3.5 transition-all duration-300 hover:-translate-y-1 hover:border-primaryColor/30 hover:bg-white/[0.06] sm:w-[250px] sm:max-w-none sm:p-4 lg:w-[280px] backdrop-blur-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div
@@ -712,7 +712,7 @@ const HorizontalRankCard = ({ user, rank, maxScore }) => {
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/5">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#ffd875] via-[#f59e0b] to-[#fb7185]"
+                className="h-full rounded-full bg-gradient-to-r from-primaryColor via-[#f59e0b] to-[#fb7185]"
                 style={{ width: `${progressWidth}%` }}
               />
             </div>
@@ -879,7 +879,7 @@ const TopUsersSectionBase = ({ variant = "horizontal" }) => {
   if (loading) {
     return (
       <LeaderboardShell users={[]} compact={isCompact}>
-        <BarSpinner className="py-12" />
+        <BarSpinner className="w-full py-12" />
       </LeaderboardShell>
     );
   }

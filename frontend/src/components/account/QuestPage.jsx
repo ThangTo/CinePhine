@@ -370,8 +370,8 @@ const QuestPage = ({ onCoinUpdate }) => {
         <div
           className="rounded-xl p-5 flex items-center justify-between gap-4"
           style={{
-            background: "linear-gradient(135deg, rgba(243,191,26,0.15), rgba(243,191,26,0.05))",
-            border: "1px solid rgba(243,191,26,0.4)",
+            background: "linear-gradient(135deg, rgb(var(--ui-loading)/0.15), rgb(var(--ui-loading)/0.05))",
+            border: "1px solid rgb(var(--ui-loading)/0.4)",
           }}
         >
           <div className="flex items-center gap-3">

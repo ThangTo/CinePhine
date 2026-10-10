@@ -613,7 +613,7 @@ const adjustUserCoins = async (id, { amount, note = '' } = {}) => {
     reason: 'admin_adjustment',
     sourceType: 'admin_user',
     sourceId: `admin-adjust:${id}:${Date.now()}`,
-    note: note || `Admin dieu chinh coin: ${delta}`,
+    note: note || `Admin điều chỉnh coin: ${delta}`,
     metadata: { amount: delta },
   });
 

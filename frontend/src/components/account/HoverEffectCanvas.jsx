@@ -3,6 +3,7 @@
  * Giới hạn trong khu vực card. Không conflict với global cursor effect.
  */
 import React, { useRef, useCallback, useEffect } from "react";
+import { HalloweenEffectFactory } from "effects/halloween";
 
 // ─── Glitter factory (preview) ─────────────────────────────────────────────────
 const makeGlitterFactory = () => (ctx) => {
@@ -477,6 +478,8 @@ const PREVIEW_FACTORIES = {
   firefly: makeFireflyFactory,
   sakura: makeSakuraFactory,
   crystal: makeSnowflakeFactory,
+  // ponytail: the real effect already reads ctx.scale, so the preview reuses it instead of a copy
+  halloween: () => HalloweenEffectFactory,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────

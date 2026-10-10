@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CinePhine Chatbot Architecture</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('cinephine-diagram-theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<style>
+  :root {
+    --bg: #f8f5ed;
+    --surface: #ffffff;
+    --surface-2: #f0eadf;
+    --surface-3: #fbf0df;
+    --ink: #161514;
+    --body: #3f3a34;
+    --muted: #81796f;
+    --line: #d8d0c2;
+    --line-soft: #e8e1d5;
+    --accent: #d97732;
+    --accent-soft: rgba(217, 119, 50, 0.11);
+    --gold: #c79a34;
+    --gold-soft: rgba(199, 154, 52, 0.13);
+    --green: #658b5a;
+    --green-soft: rgba(101, 139, 90, 0.13);
+    --blue: #597f9c;
+    --blue-soft: rgba(89, 127, 156, 0.13);
+    --purple: #8167a8;
+    --purple-soft: rgba(129, 103, 168, 0.13);
+    --danger: #b55449;
+    --danger-soft: rgba(181, 84, 73, 0.12);
+    --zone: rgba(22, 21, 20, 0.025);
+    --shadow: rgba(37, 29, 20, 0.12);
+    --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --serif: ui-serif, Georgia, "Times New Roman", serif;
+    --mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  }
+
+  html.dark {
+    --bg: #121110;
+    --surface: #1d1c1a;
+    --surface-2: #292723;
+    --surface-3: #33281f;
+    --ink: #fbf8ef;
+    --body: #d8d0c2;
+    --muted: #9f9689;
+    --line: #46413a;
+    --line-soft: #302d29;
+    --accent: #e49258;
+    --accent-soft: rgba(228, 146, 88, 0.15);
+    --gold: #d8b25a;
+    --gold-soft: rgba(216, 178, 90, 0.16);
+    --green: #91ad78;
+    --green-soft: rgba(145, 173, 120, 0.16);
+    --blue: #82a8c5;
+    --blue-soft: rgba(130, 168, 197, 0.16);
+    --purple: #ae98d2;
+    --purple-soft: rgba(174, 152, 210, 0.16);
+    --danger: #df7a70;
+    --danger-soft: rgba(223, 122, 112, 0.15);
+    --zone: rgba(251, 248, 239, 0.03);
+    --shadow: rgba(0, 0, 0, 0.28);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 8% -14%, var(--gold-soft), transparent 26rem),
+      radial-gradient(circle at 88% -10%, var(--blue-soft), transparent 30rem),
+      var(--bg);
+    color: var(--body);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .bar {
+    min-height: 70px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line-soft);
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    backdrop-filter: blur(18px);
+    flex: none;
+  }
+
+  .title h1 {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 520;
+    letter-spacing: 0;
+  }
+
+  .title p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .spacer { flex: 1; }
+
+  .chips {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .chip,
+  #themeToggle {
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background .16s ease, color .16s ease, border-color .16s ease, transform .16s ease;
+  }
+
+  .chip:hover,
+  #themeToggle:hover {
+    color: var(--ink);
+    border-color: var(--muted);
+  }
+
+  .chip.on {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--bg);
+  }
+
+  #themeToggle {
+    border-radius: 8px;
+    text-transform: uppercase;
+  }
+
+  .stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .stage svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .zone rect {
+    fill: var(--zone);
+    stroke: var(--line);
+    stroke-width: 1.2;
+    stroke-dasharray: 6 6;
+    rx: 22;
+  }
+
+  .zone .zt {
+    fill: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .zone .zs {
+    fill: var(--muted);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    opacity: 0.78;
+  }
+
+  .node { cursor: pointer; transition: opacity .2s ease; }
+  .node rect {
+    fill: var(--surface);
+    stroke: var(--line);
+    stroke-width: 1.5;
+    rx: 13;
+    filter: drop-shadow(0 10px 18px var(--shadow));
+    transition: stroke .16s ease, stroke-width .16s ease, fill .16s ease;
+  }
+  .node:hover rect { stroke: var(--muted); }
+  .node.sel rect { stroke: var(--accent); stroke-width: 2.4; }
+  .node .t {
+    fill: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 760;
+    pointer-events: none;
+  }
+  .node .m {
+    fill: var(--muted);
+    font-family: var(--mono);
+    font-size: 10.8px;
+    pointer-events: none;
+  }
+  .node .k {
+    fill: var(--accent);
+    font-family: var(--mono);
+    font-size: 9.8px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .node.fe rect { fill: var(--gold-soft); stroke: var(--gold); }
+  .node.api rect { fill: var(--green-soft); stroke: var(--green); }
+  .node.domain rect { fill: var(--accent-soft); stroke: var(--accent); }
+  .node.llm rect { fill: var(--blue-soft); stroke: var(--blue); }
+  .node.data rect { fill: var(--purple-soft); stroke: var(--purple); }
+  .node.warn rect { fill: var(--danger-soft); stroke: var(--danger); }
+
+  .edge {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 1.8;
+    marker-end: url(#arrow);
+    transition: opacity .2s ease, stroke .2s ease, stroke-width .2s ease;
+  }
+  .edge.dash { stroke-dasharray: 6 5; }
+  .edge.back { marker-end: url(#arrow-soft); }
+  .edge.stream { stroke-width: 2.2; }
+
+  .edge-label {
+    fill: var(--muted);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    transition: opacity .2s ease, fill .2s ease;
+  }
+
+  .arrow-head { fill: var(--muted); }
+  .arrow-soft { fill: var(--line); }
+  .arrow-lit { fill: var(--accent); }
+
+  .stage.flowing .edge,
+  .stage.flowing .edge-label,
+  .stage.flowing .node,
+  .stage.flowing .zone {
+    opacity: 0.22;
+  }
+
+  .stage.flowing .edge.lit {
+    opacity: 1;
+    stroke: var(--accent);
+    stroke-width: 2.8;
+    marker-end: url(#arrow-lit);
+    stroke-dasharray: 8 7;
+    animation: march .85s linear infinite;
+  }
+
+  .stage.flowing .edge-label.lit {
+    opacity: 1;
+    fill: var(--accent);
+  }
+
+  .stage.flowing .node.lit,
+  .stage.flowing .zone.lit {
+    opacity: 1;
+  }
+
+  .stage.flowing .node.lit rect {
+    stroke: var(--accent);
+    stroke-width: 2.4;
+  }
+
+  @keyframes march { to { stroke-dashoffset: -15; } }
+  @media (prefers-reduced-motion: reduce) {
+    .stage.flowing .edge.lit { animation: none; }
+  }
+
+  .token-dot {
+    fill: var(--accent);
+    opacity: 0;
+  }
+  .stage.flowing .token-dot.lit {
+    opacity: 1;
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { r: 4; opacity: .35; }
+    50% { r: 8; opacity: 1; }
+  }
+
+  .card {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 18px 48px var(--shadow);
+    padding: 14px 16px;
+  }
+
+  #detail {
+    right: 18px;
+    bottom: 18px;
+    width: 350px;
+  }
+
+  #detail h2 {
+    margin: 0 0 3px;
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: 520;
+  }
+
+  #detail .meta {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 9px;
+  }
+
+  #detail p {
+    margin: 0;
+    color: var(--body);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  #flowcap {
+    left: 18px;
+    bottom: 18px;
+    width: 440px;
+    display: none;
+  }
+
+  #flowcap.show { display: block; }
+
+  #flowcap .name {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 850;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+  }
+
+  #flowcap ol {
+    margin: 0 0 0 18px;
+    padding: 0;
+  }
+
+  #flowcap li {
+    color: var(--body);
+    font-size: 12.8px;
+    line-height: 1.52;
+  }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.93em;
+    color: var(--accent);
+  }
+
+  .hint {
+    position: absolute;
+    top: 12px;
+    right: 18px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+  }
+
+  @media (max-width: 980px) {
+    body { overflow: auto; }
+    .app { min-height: 100%; height: auto; }
+    .bar { align-items: flex-start; flex-direction: column; }
+    .spacer { display: none; }
+    .chips { justify-content: flex-start; }
+    .stage { min-height: 820px; }
+    .stage svg { min-width: 1160px; }
+    #detail,
+    #flowcap {
+      position: static;
+      width: auto;
+      margin: 12px 16px;
+    }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="bar">
+    <div class="title">
+      <h1>CinePhine Chatbot Architecture</h1>
+      <p>streaming · vision · llm gateway · movie context</p>
+    </div>
+    <div class="spacer"></div>
+    <nav class="chips" id="chips" aria-label="Flow selector">
+      <button class="chip on" data-flow="all">Overview</button>
+      <button class="chip" data-flow="stream">Streaming</button>
+      <button class="chip" data-flow="vision">Vision</button>
+      <button class="chip" data-flow="intent">Intent + DB</button>
+      <button class="chip" data-flow="fallback">Fallback</button>
+      <button class="chip" data-flow="persist">Persist</button>
+    </nav>
+    <button id="themeToggle" type="button">Theme</button>
+  </header>
+
+  <section class="stage" id="stage">
+    <svg viewBox="0 0 1560 930" preserveAspectRatio="xMidYMid meet" role="img" aria-label="CinePhine chatbot architecture diagram">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="arrow-head" d="M 0 0 L 10 5 L 0 10 z"></path>
+        </marker>
+        <marker id="arrow-soft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="arrow-soft" d="M 0 0 L 10 5 L 0 10 z"></path>
+        </marker>
+        <marker id="arrow-lit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="arrow-lit" d="M 0 0 L 10 5 L 0 10 z"></path>
+        </marker>
+      </defs>
+
+      <g class="zone" data-zone="fe">
+        <rect x="38" y="92" width="270" height="662"></rect>
+        <text class="zt" x="60" y="124">Frontend</text>
+        <text class="zs" x="60" y="145">React component · streaming UI</text>
+      </g>
+      <g class="zone" data-zone="api">
+        <rect x="348" y="92" width="250" height="662"></rect>
+        <text class="zt" x="370" y="124">Express API</text>
+        <text class="zs" x="370" y="145">routes + SSE controller</text>
+      </g>
+      <g class="zone" data-zone="domain">
+        <rect x="638" y="92" width="330" height="662"></rect>
+        <text class="zt" x="660" y="124">Chat Domain</text>
+        <text class="zs" x="660" y="145">intent · DB context · prompt</text>
+      </g>
+      <g class="zone" data-zone="llm">
+        <rect x="1008" y="92" width="250" height="662"></rect>
+        <text class="zt" x="1030" y="124">LLM Layer</text>
+        <text class="zs" x="1030" y="145">task config · registry · providers</text>
+      </g>
+      <g class="zone" data-zone="external">
+        <rect x="1298" y="92" width="224" height="662"></rect>
+        <text class="zt" x="1320" y="124">External</text>
+        <text class="zs" x="1320" y="145">MongoDB · provider API</text>
+      </g>
+
+      <path class="edge" id="e-user-ui" d="M 172 206 L 172 258"></path>
+      <path class="edge" id="e-file-ui" d="M 172 418 L 172 470"></path>
+      <path class="edge" id="e-post-stream" d="M 286 306 C 330 306 330 234 374 234"></path>
+      <path class="edge" id="e-post-fallback" d="M 286 330 C 328 354 330 392 374 424"></path>
+      <path class="edge stream" id="e-route-controller" d="M 474 276 L 474 338"></path>
+      <path class="edge stream" id="e-controller-service" d="M 574 390 C 608 390 610 218 664 218"></path>
+      <path class="edge" id="e-service-prepare" d="M 802 260 L 802 314"></path>
+      <path class="edge" id="e-prepare-intent" d="M 802 372 L 802 430"></path>
+      <path class="edge dash" id="e-intent-llm" d="M 940 470 C 982 470 982 224 1034 224"></path>
+      <path class="edge dash" id="e-intent-provider" d="M 1168 224 C 1232 224 1234 226 1324 226"></path>
+      <path class="edge" id="e-intent-db" d="M 940 492 C 1078 534 1178 406 1324 394"></path>
+      <path class="edge" id="e-prepare-main" d="M 802 526 L 802 578"></path>
+      <path class="edge" id="e-vision-main" d="M 286 530 C 476 552 592 616 664 624"></path>
+      <path class="edge stream" id="e-main-llm" d="M 940 624 C 982 624 982 366 1034 366"></path>
+      <path class="edge stream" id="e-reg-provider" d="M 1134 418 L 1134 470"></path>
+      <path class="edge stream" id="e-provider-api" d="M 1234 524 C 1268 524 1276 544 1324 544"></path>
+      <path class="edge stream back" id="e-provider-token" d="M 1324 588 C 1198 722 1010 716 848 686"></path>
+      <path class="edge stream back" id="e-token-controller" d="M 664 682 C 592 688 552 520 474 480"></path>
+      <path class="edge stream back" id="e-token-ui" d="M 374 480 C 320 486 312 660 286 660"></path>
+      <path class="edge" id="e-final-format" d="M 802 686 L 802 725"></path>
+      <path class="edge" id="e-save-chat" d="M 940 724 C 1098 820 1238 698 1324 674"></path>
+      <path class="edge dash" id="e-model-next" d="M 1134 596 C 1226 652 1232 420 1134 418"></path>
+
+      <text class="edge-label" data-e="e-post-stream" x="306" y="292">POST /chat/stream</text>
+      <text class="edge-label" data-e="e-post-fallback" x="312" y="384">fallback /chat</text>
+      <text class="edge-label" data-e="e-controller-service" x="578" y="360">handleChatStream()</text>
+      <text class="edge-label" data-e="e-intent-llm" x="966" y="454">CHATBOT_INTENT</text>
+      <text class="edge-label" data-e="e-vision-main" x="374" y="586">attachments → image_url parts</text>
+      <text class="edge-label" data-e="e-main-llm" x="962" y="604">CHATBOT stream</text>
+      <text class="edge-label" data-e="e-provider-api" x="1240" y="510">stream:true</text>
+      <text class="edge-label" data-e="e-provider-token" x="1094" y="705">delta tokens</text>
+      <text class="edge-label" data-e="e-token-ui" x="298" y="628">SSE token/done</text>
+      <text class="edge-label" data-e="e-model-next" x="1222" y="606">retryable → next model</text>
+
+      <g class="node fe" data-k="input">
+        <rect x="78" y="168" width="188" height="92"></rect>
+        <text class="t" x="98" y="199">User input</text>
+        <text class="m" x="98" y="224">text message</text>
+        <text class="m" x="98" y="244">optional page metadata</text>
+      </g>
+      <g class="node fe" data-k="chatbot">
+        <rect x="78" y="276" width="188" height="108"></rect>
+        <text class="t" x="98" y="308">Chatbot.jsx</text>
+        <text class="m" x="98" y="333">stream reader</text>
+        <text class="m" x="98" y="353">local history ref</text>
+      </g>
+      <g class="node fe" data-k="image">
+        <rect x="78" y="488" width="188" height="94"></rect>
+        <text class="t" x="98" y="520">Image upload</text>
+        <text class="m" x="98" y="545">jpeg/png/webp/gif</text>
+        <text class="m" x="98" y="565">client max 5MB</text>
+      </g>
+      <g class="node fe" data-k="render">
+        <rect x="78" y="626" width="188" height="96"></rect>
+        <text class="t" x="98" y="658">Message render</text>
+        <text class="m" x="98" y="683">plain text while streaming</text>
+        <text class="m" x="98" y="703">HTML on done</text>
+      </g>
+
+      <g class="node api" data-k="route">
+        <rect x="374" y="196" width="200" height="86"></rect>
+        <text class="t" x="394" y="228">chat.routes.js</text>
+        <text class="m" x="394" y="253">optional auth</text>
+        <text class="m" x="394" y="270">/stream + /chat</text>
+      </g>
+      <g class="node api" data-k="controller">
+        <rect x="374" y="350" width="200" height="128"></rect>
+        <text class="t" x="394" y="382">chat.controller</text>
+        <text class="m" x="394" y="407">text/event-stream</text>
+        <text class="m" x="394" y="427">ready · token · done</text>
+        <text class="m" x="394" y="447">no proxy buffering</text>
+      </g>
+
+      <g class="node domain" data-k="prepare">
+        <rect x="664" y="174" width="276" height="96"></rect>
+        <text class="t" x="686" y="206">prepareChatRequest</text>
+        <text class="m" x="686" y="232">session · history · metadata</text>
+        <text class="m" x="686" y="252">server attachment validation</text>
+      </g>
+      <g class="node domain" data-k="intent">
+        <rect x="664" y="432" width="276" height="96"></rect>
+        <text class="t" x="686" y="464">Intent classifier</text>
+        <text class="k" x="686" y="486">text-only</text>
+        <text class="m" x="686" y="506">movie_info or general</text>
+      </g>
+      <g class="node domain" data-k="main">
+        <rect x="664" y="580" width="276" height="112"></rect>
+        <text class="t" x="686" y="612">Main answer builder</text>
+        <text class="m" x="686" y="637">system prompt + history</text>
+        <text class="m" x="686" y="657">DB context + image parts</text>
+        <text class="m" x="686" y="677">scope CHATBOT</text>
+      </g>
+      <g class="node domain" data-k="format">
+        <rect x="664" y="724" width="276" height="92"></rect>
+        <text class="t" x="686" y="756">Final formatter</text>
+        <text class="m" x="686" y="781">movie links → HTML</text>
+        <text class="m" x="686" y="801">plainText saved</text>
+      </g>
+
+      <g class="node llm" data-k="llmservice">
+        <rect x="1034" y="180" width="200" height="96"></rect>
+        <text class="t" x="1054" y="212">LLMService</text>
+        <text class="m" x="1054" y="237">resolve task + env</text>
+        <text class="m" x="1054" y="257">models[] fallback loop</text>
+      </g>
+      <g class="node llm" data-k="registry">
+        <rect x="1034" y="334" width="200" height="92"></rect>
+        <text class="t" x="1054" y="366">Provider registry</text>
+        <text class="m" x="1054" y="391">compatible · openai</text>
+        <text class="m" x="1054" y="411">openrouter · gemini</text>
+      </g>
+      <g class="node llm" data-k="provider">
+        <rect x="1034" y="486" width="200" height="112"></rect>
+        <text class="t" x="1054" y="518">OpenAI provider</text>
+        <text class="m" x="1054" y="543">passes image_url parts</text>
+        <text class="m" x="1054" y="563">parses SSE deltas</text>
+        <text class="m" x="1054" y="583">marks partial stream</text>
+      </g>
+
+      <g class="node data" data-k="providerapi">
+        <rect x="1324" y="498" width="172" height="116"></rect>
+        <text class="t" x="1344" y="530">Vision model</text>
+        <text class="m" x="1344" y="555">OpenAI-compatible</text>
+        <text class="m" x="1344" y="575">chat/completions</text>
+        <text class="m" x="1344" y="595">SSE response</text>
+      </g>
+      <g class="node data" data-k="mongo">
+        <rect x="1324" y="350" width="172" height="98"></rect>
+        <text class="t" x="1344" y="382">MongoDB</text>
+        <text class="m" x="1344" y="407">movies · favorites</text>
+        <text class="m" x="1344" y="427">chat sessions</text>
+      </g>
+      <g class="node data" data-k="chatstore">
+        <rect x="1324" y="642" width="172" height="86"></rect>
+        <text class="t" x="1344" y="674">Chat history</text>
+        <text class="m" x="1344" y="699">text only</text>
+        <text class="m" x="1344" y="717">no base64 image</text>
+      </g>
+      <g class="node warn" data-k="limits">
+        <rect x="1324" y="180" width="172" height="82"></rect>
+        <text class="t" x="1344" y="212">Guardrails</text>
+        <text class="m" x="1344" y="237">one image · 5MB</text>
+        <text class="m" x="1344" y="255">MIME + base64 check</text>
+      </g>
+
+      <circle class="token-dot" data-dot="stream" cx="408" cy="480" r="5"></circle>
+      <circle class="token-dot" data-dot="stream" cx="676" cy="684" r="5"></circle>
+      <circle class="token-dot" data-dot="stream" cx="1084" cy="706" r="5"></circle>
+    </svg>
+
+    <div class="hint">Click nodes · choose a flow</div>
+
+    <aside class="card" id="flowcap">
+      <div class="name" id="f-name"></div>
+      <ol id="f-steps"></ol>
+    </aside>
+
+    <aside class="card" id="detail">
+      <h2 id="d-title">Overview</h2>
+      <div class="meta" id="d-meta">chatbot architecture</div>
+      <p id="d-body">Chọn một flow ở thanh trên để highlight đường đi request. Click từng node để xem vai trò của nó trong chatbot, streaming, vision và LLM gateway.</p>
+    </aside>
+  </section>
+</main>
+
+<script>
+const DETAILS = {
+  input: { t: 'User input', m: 'frontend source', b: 'Tin nhắn user và metadata trang hiện tại được gom trước khi gọi API. Nếu không có text nhưng có ảnh, UI dùng một placeholder ngắn cho message bubble.' },
+  chatbot: { t: 'Chatbot.jsx', m: 'frontend orchestration', b: 'Tạo user bubble, bot placeholder, gọi <code>/chat/stream</code>, parse SSE frame và append token vào message đang stream.' },
+  image: { t: 'Image upload', m: 'vision input', b: 'FileReader đọc ảnh thành base64. FE chỉ nhận jpeg/png/webp/gif và chặn file lớn hơn 5MB trước khi gửi.' },
+  render: { t: 'Message render', m: 'streaming UX', b: 'Trong lúc stream, nội dung render dạng plain text để thấy token đến dần. Khi done, FE thay bằng HTML final có link phim.' },
+  route: { t: 'chat.routes.js', m: 'Express route', b: 'Định tuyến <code>POST /chat/stream</code> và <code>POST /chat</code>, cùng optional auth để guest và user đều dùng được.' },
+  controller: { t: 'chat.controller', m: 'SSE boundary', b: 'Set <code>text/event-stream</code>, flush headers, tắt proxy buffering và ghi các event <code>ready</code>, <code>token</code>, <code>done</code>, <code>error</code>.' },
+  prepare: { t: 'prepareChatRequest', m: 'request setup', b: 'Resolve session, load history, save user text, merge metadata và validate attachment server-side. Base64 ảnh không được lưu vào MongoDB.' },
+  intent: { t: 'Intent classifier', m: 'text-only LLM call', b: 'Phân loại movie_info/general bằng text. Ảnh không đi vào classifier để giảm token và giữ classifier ổn định.' },
+  main: { t: 'Main answer builder', m: 'vision-aware prompt', b: 'Build system prompt, history, DB context và user content. Khi có ảnh, last user message là array gồm <code>text</code> và <code>image_url</code>.' },
+  format: { t: 'Final formatter', m: 'response finishing', b: 'Sau khi raw answer xong, backend bọc tên phim trong DB context thành link HTML và tạo plainText để lưu history.' },
+  llmservice: { t: 'LLMService', m: 'DIP gateway', b: 'Một gateway duy nhất resolve scope, provider, model list, timeout và chạy fallback loop cho complete/stream.' },
+  registry: { t: 'Provider registry', m: 'OCP boundary', b: 'Resolve provider implementation theo tên. Provider OpenAI-compatible là path vision v1 đang dùng.' },
+  provider: { t: 'OpenAI provider', m: 'streamChat()', b: 'Pass-through message parts sang provider, thêm <code>stream:true</code>, đọc SSE delta và gọi <code>onToken</code>.' },
+  providerapi: { t: 'Vision model', m: 'external provider', b: 'Model OpenAI-compatible có khả năng vision nhận <code>image_url</code> data URL và trả token streaming về backend.' },
+  mongo: { t: 'MongoDB', m: 'movie + chat data', b: 'Cung cấp movie context khi intent liên quan phim và lưu chat session dạng text-only.' },
+  chatstore: { t: 'Chat history', m: 'text only', b: 'Assistant plainText và user text được lưu. Ảnh base64 không persist để tránh phình DB và rủi ro dữ liệu lớn.' },
+  limits: { t: 'Guardrails', m: 'server-side validation', b: 'Backend validate lại: chỉ một ảnh, MIME hợp lệ, base64 hợp lệ, decoded size tối đa 5MB.' }
+};
+
+const FLOWS = {
+  stream: {
+    name: 'Streaming answer',
+    edges: ['e-post-stream', 'e-route-controller', 'e-controller-service', 'e-service-prepare', 'e-prepare-main', 'e-main-llm', 'e-reg-provider', 'e-provider-api', 'e-provider-token', 'e-token-controller', 'e-token-ui', 'e-final-format'],
+    nodes: ['chatbot', 'route', 'controller', 'prepare', 'main', 'llmservice', 'registry', 'provider', 'providerapi', 'render', 'format'],
+    zones: ['fe', 'api', 'domain', 'llm', 'external'],
+    dots: ['stream'],
+    steps: [
+      'FE opens <code>POST /chat/stream</code> and waits on the response body reader.',
+      'Controller writes SSE frames immediately: <code>ready</code>, then token frames.',
+      'Provider parses upstream SSE deltas and forwards tokens through <code>onToken</code>.',
+      'When done, backend sends formatted HTML + plainText in the final event.'
+    ]
+  },
+  vision: {
+    name: 'Vision image message',
+    edges: ['e-file-ui', 'e-vision-main', 'e-main-llm', 'e-reg-provider', 'e-provider-api', 'e-provider-token', 'e-token-controller', 'e-token-ui'],
+    nodes: ['image', 'chatbot', 'prepare', 'main', 'llmservice', 'registry', 'provider', 'providerapi', 'render', 'limits'],
+    zones: ['fe', 'api', 'domain', 'llm', 'external'],
+    dots: ['stream'],
+    steps: [
+      'FE validates image type and size, then sends <code>attachments</code> with base64 data.',
+      'Backend validates MIME, base64 and decoded size again.',
+      'Main CHATBOT prompt receives <code>text</code> + <code>image_url</code> content parts.',
+      'Intent classifier stays text-only; only the main answer call sees the image.'
+    ]
+  },
+  intent: {
+    name: 'Intent + movie context',
+    edges: ['e-controller-service', 'e-service-prepare', 'e-prepare-intent', 'e-intent-llm', 'e-intent-provider', 'e-intent-db', 'e-prepare-main'],
+    nodes: ['controller', 'prepare', 'intent', 'llmservice', 'providerapi', 'mongo', 'main'],
+    zones: ['api', 'domain', 'llm', 'external'],
+    dots: [],
+    steps: [
+      'Text message is classified as <code>movie_info</code> or <code>general</code>.',
+      'Movie intent builds DB context from current movie, search, top/new lists or metadata.',
+      'The final main prompt gets DB context; general questions get a lightweight note.'
+    ]
+  },
+  fallback: {
+    name: 'LLM fallback loop',
+    edges: ['e-main-llm', 'e-reg-provider', 'e-provider-api', 'e-model-next', 'e-provider-token'],
+    nodes: ['main', 'llmservice', 'registry', 'provider', 'providerapi'],
+    zones: ['domain', 'llm', 'external'],
+    dots: [],
+    steps: [
+      '<code>LLM_MODEL</code> is tried first, then <code>LLM_FALLBACK_MODELS</code>.',
+      'Retry only happens before partial streaming content is emitted.',
+      'No retry for auth/not-found style errors: 401, 402, 403, 404.'
+    ]
+  },
+  persist: {
+    name: 'Persistence path',
+    edges: ['e-service-prepare', 'e-intent-db', 'e-final-format', 'e-save-chat'],
+    nodes: ['prepare', 'intent', 'mongo', 'format', 'chatstore'],
+    zones: ['domain', 'external'],
+    dots: [],
+    steps: [
+      'User text is saved at request preparation.',
+      'Movie context reads from MongoDB when needed.',
+      'Assistant plainText is saved after formatting; image base64 is never persisted.'
+    ]
+  }
+};
+
+const stage = document.getElementById('stage');
+const chips = [...document.querySelectorAll('.chip')];
+const nodes = [...document.querySelectorAll('.node')];
+const edges = [...document.querySelectorAll('.edge')];
+const labels = [...document.querySelectorAll('.edge-label')];
+const zones = [...document.querySelectorAll('.zone')];
+const dots = [...document.querySelectorAll('.token-dot')];
+const flowCap = document.getElementById('flowcap');
+
+function setFlow(key) {
+  chips.forEach((chip) => chip.classList.toggle('on', chip.dataset.flow === key));
+  edges.forEach((edge) => edge.classList.remove('lit'));
+  labels.forEach((label) => label.classList.remove('lit'));
+  nodes.forEach((node) => node.classList.remove('lit'));
+  zones.forEach((zone) => zone.classList.remove('lit'));
+  dots.forEach((dot) => dot.classList.remove('lit'));
+
+  if (key === 'all') {
+    stage.classList.remove('flowing');
+    flowCap.classList.remove('show');
+    return;
+  }
+
+  const flow = FLOWS[key];
+  stage.classList.add('flowing');
+  flow.edges.forEach((id) => document.getElementById(id)?.classList.add('lit'));
+  labels.forEach((label) => {
+    if (flow.edges.includes(label.dataset.e)) label.classList.add('lit');
+  });
+  flow.nodes.forEach((key) => document.querySelector(`.node[data-k="${key}"]`)?.classList.add('lit'));
+  flow.zones.forEach((key) => document.querySelector(`.zone[data-zone="${key}"]`)?.classList.add('lit'));
+  flow.dots.forEach((key) => document.querySelector(`.token-dot[data-dot="${key}"]`)?.classList.add('lit'));
+  document.getElementById('f-name').textContent = flow.name;
+  document.getElementById('f-steps').innerHTML = flow.steps.map((step) => `<li>${step}</li>`).join('');
+  flowCap.classList.add('show');
+}
+
+chips.forEach((chip) => {
+  chip.addEventListener('click', () => setFlow(chip.dataset.flow));
+});
+
+nodes.forEach((node) => {
+  node.addEventListener('click', () => {
+    nodes.forEach((item) => item.classList.remove('sel'));
+    node.classList.add('sel');
+    const detail = DETAILS[node.dataset.k];
+    if (!detail) return;
+    document.getElementById('d-title').textContent = detail.t;
+    document.getElementById('d-meta').textContent = detail.m;
+    document.getElementById('d-body').innerHTML = detail.b;
+  });
+});
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const dark = !document.documentElement.classList.contains('dark');
+  document.documentElement.classList.toggle('dark', dark);
+  localStorage.setItem('cinephine-diagram-theme', dark ? 'dark' : 'light');
+});
+</script>
+</body>
+</html>

@@ -768,8 +768,8 @@ async function claimReward(userId, questId, options = {}) {
       sourceType: 'quest_reward',
       sourceId: claimedProgress._id || `${userId}:${definition._id}:${periodKey}`,
       note: options.autoClaim
-        ? `Tu dong nhan thuong nhiem vu: ${snapshotQuest.title}`
-        : `Nhan thuong nhiem vu: ${snapshotQuest.title}`,
+        ? `Tự động nhận thưởng nhiệm vụ: ${snapshotQuest.title}`
+        : `Nhận thưởng nhiệm vụ: ${snapshotQuest.title}`,
       metadata: {
         questDefinitionId: asIdString(definition._id),
         questId: snapshotQuest.questId,
@@ -893,8 +893,8 @@ async function claimCompletionBonus(userId, type, options = {}) {
       sourceType: 'quest_completion_bonus',
       sourceId: `${userId}:${type}:${periodKey}`,
       note: options.autoClaim
-        ? `Tu dong nhan bonus hoan thanh nhiem vu ${type}: ${bonus} coin`
-        : `Nhan bonus hoan thanh nhiem vu ${type}: ${bonus} coin`,
+        ? `Tự động nhận bonus hoàn thành nhiệm vụ ${type === 'weekly' ? 'tuần' : 'ngày'}: ${bonus} coin`
+        : `Nhận bonus hoàn thành nhiệm vụ ${type === 'weekly' ? 'tuần' : 'ngày'}: ${bonus} coin`,
       metadata: {
         questType: type,
         periodKey,
