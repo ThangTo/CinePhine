@@ -30,6 +30,9 @@ export const getAvatarUrlByKey = (key) => {
   return `${getAvatarBaseUrl()}/${DEFAULT_AVATARS[index]}`;
 };
 
+// Halloween costume per user (0 hat, 1 horns, 2 cat ears, 3 bat wings); CSS reads it from data-costume.
+export const getAvatarCostume = (name) => hashString(name || "") % 4;
+
 export const getRandomAvatarUrl = () => {
   const randomIndex = Math.floor(Math.random() * DEFAULT_AVATARS.length);
   return `${getAvatarBaseUrl()}/${DEFAULT_AVATARS[randomIndex]}`;

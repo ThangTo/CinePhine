@@ -2,7 +2,8 @@
  * Leaderboard Service
  * Computes and caches the public top users leaderboard.
  *
- * Cache: leaderboard:topUsers:v5:<yyyy-mm-dd> (TTL: 3600s)
+ * Cache: leaderboard:topUsers:v6:<yyyy-mm-dd> (TTL: 3600s)
+ * Order: users with currentStreak > 0 first, then by score.
  * Score formula:
  * watchMinutes + 500 * log2(currentStreak + 1) + 150 * log2(maxStreak + 1)
  */
@@ -13,7 +14,7 @@ const watchStreakService = require('./watchStreak.service');
 const { normalizeAvatarForOutput } = require('../utils/avatarUtils');
 const premiumService = require('./premium.service');
 
-const CACHE_KEY_PREFIX = 'leaderboard:topUsers:v5';
+const CACHE_KEY_PREFIX = 'leaderboard:topUsers:v6';
 const CACHE_TTL = 3600; // 1 hour
 const LEADERBOARD_LIMIT = 10;
 const PUBLIC_USER_ROLES = ['user', 'premium'];
@@ -105,6 +106,9 @@ const getTopUsers = async (referenceDate = new Date()) => {
       };
     })
     .sort((left, right) => {
+      // Active streaks always rank above broken ones, whatever the score.
+      const activeDiff = Number(right.currentStreak > 0) - Number(left.currentStreak > 0);
+      if (activeDiff !== 0) return activeDiff;
       if (right.score !== left.score) return right.score - left.score;
       if (right.totalWatchTime !== left.totalWatchTime) {
         return right.totalWatchTime - left.totalWatchTime;

@@ -38,7 +38,7 @@ const expectedLeaderboardScore = ({ totalWatchTime, currentStreak, maxStreak }) 
 );
 
 async function main() {
-  await runTest('leaderboard uses watch minutes plus weighted log streak score and 1 hour day-scoped cache', async () => {
+  await runTest('leaderboard ranks active streaks first, then by weighted score, with 1 hour day-scoped cache', async () => {
     const state = {
       users: [
         {
@@ -61,7 +61,8 @@ async function main() {
         },
       ],
       watchStats: [
-        { _id: 'user-stale', totalWatchTime: 1200 },
+        // Stale user out-scores the active one but must still rank below.
+        { _id: 'user-stale', totalWatchTime: 120000 },
         { _id: 'user-active', totalWatchTime: 1800 },
       ],
       redisGets: [],
@@ -163,13 +164,14 @@ async function main() {
     assert.equal(rows[1].currentStreak, 0);
     assert.equal(rows[1].maxStreak, 9);
     assert.equal(rows[1].score, expectedLeaderboardScore({
-      totalWatchTime: 1200,
+      totalWatchTime: 120000,
       currentStreak: 0,
       maxStreak: 9,
     }));
+    assert.ok(rows[1].score > rows[0].score);
     assert.equal(rows[1].isPremium, false);
     assert.equal(state.redisGets.length, 1);
-    assert.match(state.redisGets[0], /^leaderboard:topUsers:v5:\d{4}-\d{2}-\d{2}$/);
+    assert.match(state.redisGets[0], /^leaderboard:topUsers:v6:\d{4}-\d{2}-\d{2}$/);
     assert.equal(state.redisSets.length, 1);
     assert.equal(state.redisSets[0].ttl, 3600);
 

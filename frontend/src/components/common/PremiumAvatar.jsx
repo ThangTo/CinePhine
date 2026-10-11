@@ -1,5 +1,5 @@
 import React from "react";
-import { getAvatarUrlByKey, handleAvatarError } from "utils/avatarUtils";
+import { getAvatarCostume, getAvatarUrlByKey, handleAvatarError } from "utils/avatarUtils";
 import { getTopRankTier } from "utils/userPrestige";
 
 const PREMIUM_RING =
@@ -23,11 +23,14 @@ const PremiumAvatar = ({
   const resolvedSrc = src || getAvatarUrlByKey(alt);
   const topRankTier = getTopRankTier(rank);
   const hasPrestige = isPremium || topRankTier;
+  const costume = getAvatarCostume(alt);
 
   if (hasPrestige) {
     return (
       <div
-        className={`relative inline-flex shrink-0 overflow-visible rounded-full p-[2px] ${size} ${className}`}
+        className={`site-avatar relative inline-flex shrink-0 overflow-visible rounded-full p-[2px] ${size} ${className}`}
+        data-costume={costume}
+        data-rank={topRankTier?.rank}
         style={{
           background: topRankTier ? RANK_RING_BY_TIER[topRankTier.rank] : PREMIUM_RING,
           animation: "premiumGlow 2.5s ease-in-out infinite",
@@ -41,6 +44,8 @@ const PremiumAvatar = ({
             onError={handleAvatarError}
           />
         </div>
+        {/* Halloween #1: carved face + embers (styled in themes.css, hidden otherwise). */}
+        {topRankTier?.rank === 1 && <span className="site-avatar-fx" aria-hidden="true" />}
 
         {isPremium && (
           <div
@@ -74,7 +79,10 @@ const PremiumAvatar = ({
   }
 
   return (
-    <div className={`relative inline-flex shrink-0 overflow-visible rounded-full bg-[#111] ${size} ${className}`}>
+    <div
+      className={`site-avatar relative inline-flex shrink-0 overflow-visible rounded-full bg-[#111] ${size} ${className}`}
+      data-costume={costume}
+    >
       <img
         src={resolvedSrc}
         alt={alt}

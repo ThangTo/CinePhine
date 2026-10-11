@@ -4,8 +4,19 @@ import { BarSpinner } from "components/common/LoadingState";
 import EmptyState from "components/common/EmptyState";
 import leaderboardService from "services/leaderboard.service";
 import formatWatchDuration from "utils/formatWatchDuration";
-import { getAvatarUrlByKey, handleAvatarError } from "utils/avatarUtils";
+import { getAvatarCostume, getAvatarUrlByKey, handleAvatarError } from "utils/avatarUtils";
 import { getUserPrestige } from "utils/userPrestige";
+import { useTheme } from "contexts/ThemeContext";
+
+const SPARK_COLORS = ["#ffd875", "#ffe39f", "#22d3ee", "#ffffff"];
+const HALLOWEEN_SPARK_COLORS = ["#f97316", "#fdba74", "#a855f7", "#84cc16"];
+
+// Halloween titles for the top 3 (label + icon override PODIUM_STYLES).
+const HALLOWEEN_PODIUM = {
+  1: { label: "Vua Bí Ngô", icon: "fa-hat-wizard" },
+  2: { label: "Hồn Ma Lang Thang", icon: "fa-ghost" },
+  3: { label: "Phù Thủy Tập Sự", icon: "fa-broom" },
+};
 
 // --- COMPONENT HIỆU ỨNG PHÉP THUẬT DÒNG CHẢY KIM TUYẾN ---
 const MagicFlowBackground = () => {
@@ -38,7 +49,9 @@ const MagicFlowBackground = () => {
         this.life = Math.random() * Math.PI * 2; // Chu kỳ lấp lánh
 
         // Lấy dải màu primary của giao diện bạn đang dùng
-        const colors = ["#ffd875", "#ffe39f", "#22d3ee", "#ffffff"];
+        // ponytail: read the theme on each respawn, so a theme switch recolors sparks as they recycle
+        const colors =
+          document.documentElement.dataset.siteTheme === "halloween" ? HALLOWEEN_SPARK_COLORS : SPARK_COLORS;
         this.color = colors[Math.floor(Math.random() * colors.length)];
       }
       update() {
@@ -149,7 +162,75 @@ const buildLeaderboardEntries = (users) =>
     rank: index + 1,
   }));
 
-const UserAvatar = ({ src, username, rank, isPremium = false, className = "h-14 w-14" }) => {
+// Same bat path as HalloweenDecorations (not imported: that module is a lazy chunk).
+const BAT = "q6-6 12 0q6-6 12 0q-6 2-12 6q-6-4-12-6Z";
+
+// Halloween: a broken streak (0 days) turns the user into a ghost.
+const isGhostUser = (user) => clampNumber(user.currentStreak) === 0;
+
+const GhostTag = ({ user }) => {
+  const { currentTheme } = useTheme();
+  if (currentTheme !== "halloween" || !isGhostUser(user)) return null;
+
+  return (
+    <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-bold text-gray-200">
+      <i className="fa-solid fa-ghost" />
+      Đã hóa ma
+    </span>
+  );
+};
+
+// Halloween: moon centered behind the #1 badge (card clips overflow) with bats crossing it.
+const MoonStage = () => {
+  const { currentTheme } = useTheme();
+  if (currentTheme !== "halloween") return null;
+
+  return (
+    <svg
+      className="pointer-events-none absolute -right-[30px] -top-[26px] h-40 w-60"
+      viewBox="0 0 240 160"
+      fill="#07040b"
+      aria-hidden="true"
+    >
+      <defs>
+        <radialGradient id="leaderboard-moon" cx=".4" cy=".36">
+          <stop offset="0" stopColor="#ffe3b0" />
+          <stop offset="1" stopColor="#ff9a3d" />
+        </radialGradient>
+      </defs>
+      <circle cx="170" cy="66" r="66" fill="#ff9a3d" fillOpacity=".1" />
+      <circle cx="170" cy="66" r="44" fill="url(#leaderboard-moon)" />
+      <g fill="#d9661a" fillOpacity=".3">
+        <circle cx="156" cy="54" r="8" />
+        <circle cx="184" cy="82" r="6" />
+        <circle cx="188" cy="50" r="4" />
+      </g>
+      {[0, -3.2, -6.4].map((delay, index) => (
+        <g key={delay} className="halloween-moon-bat" style={{ animationDelay: `${delay}s` }}>
+          <path className="halloween-bat" d={`M0 ${48 + index * 16}${BAT}`} />
+        </g>
+      ))}
+    </svg>
+  );
+};
+
+const HalloweenFog = () =>
+  useTheme().currentTheme === "halloween" ? (
+    <div className="halloween-fog site-leaderboard-fog" aria-hidden="true">
+      <i />
+      <i />
+      <i />
+    </div>
+  ) : null;
+
+const UserAvatar = ({
+  src,
+  username,
+  rank,
+  isPremium = false,
+  ghost = false,
+  className = "h-14 w-14 rounded-2xl",
+}) => {
   const prestige = getUserPrestige({ isPremium }, rank);
   const ringClassName =
     prestige.topRankTier?.ringClassName ||
@@ -158,7 +239,11 @@ const UserAvatar = ({ src, username, rank, isPremium = false, className = "h-14 
       : "ring-white/10");
 
   return (
-    <div className={`relative shrink-0 overflow-visible ${className}`}>
+    <div
+      className={`site-avatar relative shrink-0 overflow-visible ${ghost ? "site-avatar-ghost" : ""} ${className}`}
+      data-costume={getAvatarCostume(username)}
+      data-rank={prestige.topRankTier?.rank}
+    >
       <div className={`h-full w-full overflow-hidden rounded-2xl bg-white/5 ring-2 ${ringClassName}`}>
         <img
           src={src || getAvatarUrlByKey(username)}
@@ -167,17 +252,18 @@ const UserAvatar = ({ src, username, rank, isPremium = false, className = "h-14 
           onError={handleAvatarError}
         />
       </div>
+      {prestige.topRankTier?.rank === 1 && <span className="site-avatar-fx" aria-hidden="true" />}
 
       {prestige.topRankTier && (
         <div
-          className={`absolute -left-2 -top-2 flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-xs font-black ${prestige.topRankTier.badgeClassName}`}
+          className={`absolute -left-2 -top-2 z-20 flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-xs font-black ${prestige.topRankTier.badgeClassName}`}
         >
           #{prestige.topRankTier.rank}
         </div>
       )}
 
       {prestige.isPremium && (
-        <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-[#ffd875]/60 bg-gradient-to-br from-[#fde68a] to-[#f59e0b] text-[11px] text-yellow-950 shadow-[0_0_12px_rgba(255,216,117,0.45)]">
+        <div className="absolute -bottom-1 -right-1 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-[#ffd875]/60 bg-gradient-to-br from-[#fde68a] to-[#f59e0b] text-[11px] text-yellow-950 shadow-[0_0_12px_rgba(255,216,117,0.45)]">
           <i className="fa-solid fa-crown" />
         </div>
       )}
@@ -407,15 +493,16 @@ const LeaderboardShell = ({ users, children, compact = false }) => (
     className={`relative mx-auto ${compact ? "w-full px-3 py-4 sm:px-6 sm:py-6" : "max-w-6xl px-4 py-10 sm:px-6"}`}
   >
     <div className="absolute inset-x-8 top-20 h-40 rounded-full bg-primaryColor/10 blur-3xl" />
-    <div className="absolute right-10 top-28 h-44 w-44 rounded-full bg-[#22d3ee]/10 blur-3xl" />
+    <div className="site-leaderboard-glow absolute right-10 top-28 h-44 w-44 rounded-full bg-[#22d3ee]/10 blur-3xl" />
 
-    <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#0b1018] shadow-[0_35px_90px_rgba(0,0,0,0.45)]">
+    <div className="site-leaderboard relative overflow-hidden rounded-[32px] border border-white/10 bg-[#0b1018] shadow-[0_35px_90px_rgba(0,0,0,0.45)]">
       <div className="absolute inset-0 bg-[linear-gradient(135deg,rgb(var(--ui-primary)/0.08),transparent_24%,transparent_72%,rgba(34,211,238,0.08))]" />
       <div className="absolute left-[-80px] top-[-80px] h-56 w-56 rounded-full bg-primaryColor/10 blur-3xl" />
-      <div className="absolute bottom-[-120px] right-[-80px] h-72 w-72 rounded-full bg-[#38bdf8]/10 blur-3xl" />
+      <div className="site-leaderboard-glow absolute bottom-[-120px] right-[-80px] h-72 w-72 rounded-full bg-[#38bdf8]/10 blur-3xl" />
 
       {/* HIỆU ỨNG CANVAS ĐƯỢC CHÈN Ở ĐÂY VỚI Z-INDEX THẤP NHẤT */}
       <MagicFlowBackground />
+      <HalloweenFog />
 
       <div
         className={`relative z-10 ${compact ? "px-3.5 py-4 sm:px-6 sm:py-6 lg:px-8" : "px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10"}`}
@@ -429,13 +516,16 @@ const LeaderboardShell = ({ users, children, compact = false }) => (
 
 const PodiumCard = ({ user, rank }) => {
   const style = PODIUM_STYLES[rank] || PODIUM_STYLES[3];
+  const { currentTheme } = useTheme();
+  const { label, icon } = (currentTheme === "halloween" && HALLOWEEN_PODIUM[rank]) || style;
 
   return (
     <article
-      className={`group relative overflow-hidden rounded-[28px] border bg-gradient-to-br p-5 transition-all duration-300 hover:-translate-y-1 sm:p-6 ${style.surface} ${style.border} ${style.shadow} ${style.height}`}
+      className={`site-leaderboard-card group relative overflow-hidden rounded-[28px] border bg-gradient-to-br p-5 transition-all duration-300 hover:-translate-y-1 sm:p-6 ${style.surface} ${style.border} ${style.shadow} ${style.height}`}
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),transparent_52%)] opacity-60" />
       <div className="absolute -right-10 top-8 h-28 w-28 rounded-full bg-white/10 blur-3xl" />
+      {rank === 1 && <MoonStage />}
 
       <div className="relative z-10">
         <div className="flex items-start justify-between gap-4">
@@ -443,17 +533,19 @@ const PodiumCard = ({ user, rank }) => {
             <div
               className={`inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] ${style.accent}`}
             >
-              <i className={`fa-solid ${style.icon}`} />
-              <span>{style.label}</span>
+              <i className={`fa-solid ${icon}`} />
+              <span>{label}</span>
             </div>
             <p className="mt-3 text-sm text-gray-300">Hạng #{rank}</p>
           </div>
 
-          <div
-            className={`flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-black ${style.badge}`}
-          >
-            {rank}
-          </div>
+          {!(rank === 1 && currentTheme === "halloween") && (
+            <div
+              className={`flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-black ${style.badge}`}
+            >
+              {rank}
+            </div>
+          )}
         </div>
 
         <div className="mt-8 flex items-center gap-4">
@@ -462,10 +554,12 @@ const PodiumCard = ({ user, rank }) => {
             username={user.username}
             rank={rank}
             isPremium={user.isPremium}
+            ghost={isGhostUser(user)}
             className="h-16 w-16 rounded-[22px] ring-2 ring-white/10"
           />
           <div className="min-w-0">
             <h3 className="truncate text-xl font-bold text-white">{user.username}</h3>
+            <GhostTag user={user} />
             <PrestigeBadges user={user} rank={rank} className="mt-2" />
             <p className="mt-1 text-sm text-gray-400">Điểm xếp hạng {formatScore(user.score)}</p>
           </div>
@@ -501,7 +595,7 @@ const LeaderboardRow = ({ user, rank, maxScore }) => {
   const progressWidth = maxScore > 0 ? Math.max(12, Math.round((score / maxScore) * 100)) : 12;
 
   return (
-    <article className="group relative z-10 rounded-[26px] border border-white/10 bg-white/[0.04] p-4 transition-all duration-300 hover:border-primaryColor/30 hover:bg-white/[0.06] backdrop-blur-sm">
+    <article className="site-leaderboard-card group relative z-10 rounded-[26px] border border-white/10 bg-white/[0.04] p-4 transition-all duration-300 hover:border-primaryColor/30 hover:bg-white/[0.06] backdrop-blur-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#131927] text-lg font-black text-white ring-1 ring-white/10">
@@ -513,10 +607,12 @@ const LeaderboardRow = ({ user, rank, maxScore }) => {
             username={user.username}
             rank={rank}
             isPremium={user.isPremium}
+            ghost={isGhostUser(user)}
           />
 
           <div className="min-w-0">
             <h3 className="truncate text-base font-semibold text-white">{user.username}</h3>
+            <GhostTag user={user} />
             <PrestigeBadges user={user} rank={rank} compact className="mt-1" />
             <p className="mt-1 text-sm text-gray-400">
               Đã xem {formatWatchDuration(user.totalWatchTime)}
@@ -552,7 +648,7 @@ const LeaderboardRow = ({ user, rank, maxScore }) => {
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-white/5">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-primaryColor via-[#f59e0b] to-[#fb7185] transition-all duration-500"
+            className="site-leaderboard-bar h-full rounded-full bg-gradient-to-r from-primaryColor via-[#f59e0b] to-[#fb7185] transition-all duration-500"
             style={{ width: `${progressWidth}%` }}
           />
         </div>
@@ -563,25 +659,31 @@ const LeaderboardRow = ({ user, rank, maxScore }) => {
 
 const HorizontalHeroCard = ({ user }) => {
   const [expanded, setExpanded] = useState(false);
+  const { currentTheme } = useTheme();
+  const { label, icon } = (currentTheme === "halloween" && HALLOWEEN_PODIUM[1]) || PODIUM_STYLES[1];
 
   return (
-    <article className="relative z-10 overflow-hidden rounded-[28px] border border-[#ffd875]/30 bg-gradient-to-br from-[#2f260d] via-[#171d2a] to-[#10141d] p-4 shadow-[0_24px_80px_rgba(255,216,117,0.16)] sm:p-5">
+    <article className="site-leaderboard-card relative z-10 overflow-hidden rounded-[28px] border border-[#ffd875]/30 bg-gradient-to-br from-[#2f260d] via-[#171d2a] to-[#10141d] p-4 shadow-[0_24px_80px_rgba(255,216,117,0.16)] sm:p-5">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_55%)] opacity-70" />
       <div className="absolute -right-10 top-6 h-28 w-28 rounded-full bg-[#ffd875]/15 blur-3xl" />
+      <MoonStage />
 
       <div className="relative">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#ffd875]/20 bg-[#ffd875]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ffe6a0]">
-              <i className="fa-solid fa-crown" />
-              <span>Quán quân hiện tại</span>
+              <i className={`fa-solid ${icon}`} />
+              <span>{label} hiện tại</span>
             </div>
             <p className="mt-3 text-sm text-gray-300">Hạng #1</p>
           </div>
 
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ffe39f] via-[#ffd875] to-[#f3a70b] text-lg font-black text-[#18130a]">
-            1
-          </div>
+          {/* Halloween: the moon takes the badge's spot. */}
+          {currentTheme !== "halloween" && (
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ffe39f] via-[#ffd875] to-[#f3a70b] text-lg font-black text-[#18130a]">
+              1
+            </div>
+          )}
         </div>
 
         <div className="mt-5 flex items-center gap-3 sm:gap-4">
@@ -590,10 +692,12 @@ const HorizontalHeroCard = ({ user }) => {
             username={user.username}
             rank={1}
             isPremium={user.isPremium}
+            ghost={isGhostUser(user)}
             className="h-14 w-14 rounded-[20px] ring-2 ring-[#ffd875]/20 sm:h-16 sm:w-16 sm:rounded-[22px]"
           />
           <div className="min-w-0">
             <h3 className="truncate text-xl font-black text-white sm:text-2xl">{user.username}</h3>
+            <GhostTag user={user} />
             <PrestigeBadges user={user} rank={1} className="mt-2" />
             <p className="mt-1 text-sm text-gray-300">
               Đã xem {formatWatchDuration(user.totalWatchTime)}
@@ -642,7 +746,7 @@ const HorizontalRankCard = ({ user, rank, maxScore }) => {
   const progressWidth = maxScore > 0 ? Math.max(12, Math.round((score / maxScore) * 100)) : 12;
 
   return (
-    <article className="relative z-10 w-[74vw] max-w-[220px] shrink-0 snap-start rounded-[24px] border border-white/10 bg-white/[0.04] p-3.5 transition-all duration-300 hover:-translate-y-1 hover:border-primaryColor/30 hover:bg-white/[0.06] sm:w-[250px] sm:max-w-none sm:p-4 lg:w-[280px] backdrop-blur-sm">
+    <article className="site-leaderboard-card relative z-10 w-[74vw] max-w-[220px] shrink-0 snap-start rounded-[24px] border border-white/10 bg-white/[0.04] p-3.5 transition-all duration-300 hover:-translate-y-1 hover:border-primaryColor/30 hover:bg-white/[0.06] sm:w-[250px] sm:max-w-none sm:p-4 lg:w-[280px] backdrop-blur-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div
@@ -654,6 +758,7 @@ const HorizontalRankCard = ({ user, rank, maxScore }) => {
           <div className="min-w-0">
             <p className="text-[11px] uppercase tracking-[0.22em] text-gray-500">Hạng #{rank}</p>
             <h3 className="truncate text-base font-semibold text-white">{user.username}</h3>
+            <GhostTag user={user} />
           </div>
         </div>
 
@@ -662,6 +767,7 @@ const HorizontalRankCard = ({ user, rank, maxScore }) => {
           username={user.username}
           rank={rank}
           isPremium={user.isPremium}
+          ghost={isGhostUser(user)}
           className="h-12 w-12 rounded-[18px]"
         />
       </div>
@@ -712,7 +818,7 @@ const HorizontalRankCard = ({ user, rank, maxScore }) => {
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/5">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-primaryColor via-[#f59e0b] to-[#fb7185]"
+                className="site-leaderboard-bar h-full rounded-full bg-gradient-to-r from-primaryColor via-[#f59e0b] to-[#fb7185]"
                 style={{ width: `${progressWidth}%` }}
               />
             </div>
@@ -728,7 +834,8 @@ const VerticalLeaderboardContent = ({ users }) => {
   const topThree = leaderboardEntries.slice(0, 3);
   const podiumEntries = topThree.length === 3 ? [topThree[1], topThree[0], topThree[2]] : topThree;
   const remainingEntries = leaderboardEntries.slice(3);
-  const maxScore = clampNumber(users[0]?.score);
+  // #1 is not always the top score (broken streaks rank last), so scale bars to the real max.
+  const maxScore = Math.max(0, ...users.map((user) => clampNumber(user.score)));
 
   return (
     <div className="space-y-8">
@@ -772,7 +879,8 @@ const HorizontalLeaderboardContent = ({ users }) => {
   const leaderboardEntries = buildLeaderboardEntries(users);
   const championEntry = leaderboardEntries[0];
   const remainingEntries = leaderboardEntries.slice(1);
-  const maxScore = clampNumber(users[0]?.score);
+  // #1 is not always the top score (broken streaks rank last), so scale bars to the real max.
+  const maxScore = Math.max(0, ...users.map((user) => clampNumber(user.score)));
 
   return (
     <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)] xl:gap-5">
