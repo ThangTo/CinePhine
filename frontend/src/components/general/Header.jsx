@@ -236,19 +236,16 @@ const Header = () => {
                 onClose={() => setShowMobileMenu(false)}
               />
 
-              {/* Theme Selector - Mobile */}
-              <div className="lg:hidden hidden mt-4 mb-4 items-center justify-between px-2">
-                <span className="text-sm text-gray-300">Theme</span>
-                <ThemeSelector />
-              </div>
-
-              {/* Timi Toggle - Mobile */}
+              {/* Timi + Theme Toggle - Mobile (ThemeSelector hides itself on default theme) */}
               <div className="lg:hidden mb-4 flex items-center justify-between px-2">
                 {/* <span className="text-sm text-gray-300">Trợ lý Timi</span> */}
                 <div className="lg:hidden">
                   <WatchStreak compact />
                 </div>
-                <TimiToggle />
+                <div className="flex items-center gap-1">
+                  <ThemeSelector />
+                  <TimiToggle />
+                </div>
               </div>
 
               {/* Watch Streak - Mobile */}
