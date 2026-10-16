@@ -818,7 +818,7 @@ const upsertPremiumPlan = async (req, res) => {
       label: label.trim(),
       days: Number(days),
       coins: Number(coins),
-      sortOrder: Number(sortOrder) || 99,
+      sortOrder: Number(sortOrder) || undefined,
     };
     const plans = await adminService.upsertPremiumPlan(plan);
     res.json({ success: true, data: plans });

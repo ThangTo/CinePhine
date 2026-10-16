@@ -1044,12 +1044,16 @@ const upsertPremiumPlan = async (plan) => {
     throw new Error('Premium plan only supports weekly, monthly or yearly');
   }
 
-  const plans = await getPremiumPlans();
+  // Copy so DEFAULT_PREMIUM_PLANS is never mutated.
+  const plans = [...(await getPremiumPlans())];
+  if (plans.some((p) => p.planKey === plan.planKey && p.id !== plan.id)) {
+    throw new Error(`Gói "${plan.planKey}" đã tồn tại`);
+  }
   const idx = plans.findIndex((p) => p.id === plan.id);
   if (idx >= 0) {
-    plans[idx] = { ...plans[idx], ...plan };
+    plans[idx] = { ...plans[idx], ...plan, sortOrder: plan.sortOrder ?? plans[idx].sortOrder };
   } else {
-    plans.push({ ...plan, id: plan.id || `plan_${Date.now()}` });
+    plans.push({ ...plan, id: plan.id || `plan_${Date.now()}`, sortOrder: plan.sortOrder ?? 99 });
   }
   await setSetting('premium_plans', plans, 'Danh sách gói premium');
   return plans;

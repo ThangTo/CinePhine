@@ -277,7 +277,7 @@ const PremiumPlanModal = ({ isOpen, onClose, onSave, initial }) => {
               value={form.planKey}
               onChange={(e) => setForm((f) => ({ ...f, planKey: e.target.value }))}
               className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-primaryColor transition-all font-mono text-sm"
-              placeholder="VD: monthly, yearly, vip_monthly"
+              placeholder="weekly, monthly hoặc yearly"
               required
             />
           </div>
@@ -322,20 +322,6 @@ const PremiumPlanModal = ({ isOpen, onClose, onSave, initial }) => {
                 onChange={(e) => setForm((f) => ({ ...f, coins: e.target.value }))}
                 className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-primaryColor transition-all"
                 placeholder="VD: 100"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase text-gray-400 mb-1.5 tracking-wider">
-                Giá (VNĐ) <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={form.price}
-                onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-primaryColor transition-all"
-                placeholder="VD: 30000"
                 required
               />
             </div>
