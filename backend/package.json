@@ -32,7 +32,7 @@
     "test:increment-view": "node scripts/testIncrementViewService.js",
     "test:optional-auth": "node scripts/testOptionalAuthMiddleware.js",
     "test:timi-ai": "node --test controllers/ai.controller.test.js",
-    "test:llm": "node --test services/llm/errors.test.js services/llm/registry.test.js services/llm/tasks.test.js services/llm/config.test.js services/llm/providers/openai.provider.test.js services/llm/providers/gemini.provider.test.js services/llm/LLMService.test.js services/llm.service.test.js services/chat.service.test.js",
+    "test:llm": "node --test services/llm/errors.test.js services/llm/registry.test.js services/llm/tasks.test.js services/llm/config.test.js services/llm/providers/openai.provider.test.js services/llm/providers/gemini.provider.test.js services/llm/LLMService.test.js services/llm.service.test.js services/chat/chat.test.js",
     "test:hls-lab": "node --test services/hlsLab.service.test.js",
     "test:view-history-backfill": "node scripts/testViewHistoryBackfillService.js",
     "test:watch-streak": "node scripts/testWatchStreakLogic.js",

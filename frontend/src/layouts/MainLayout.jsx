@@ -1,12 +1,13 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { useTheme } from "contexts/ThemeContext";
+import { useAuth } from "contexts/AuthContext";
 import Header from "components/general/Header";
 import SiteFooter from "components/general/SiteFooter";
 // import GuestNotification from "components/general/GuestNotification";
 import { hexToRgbChannels } from "utils/colorUtils";
 
-const Chatbot = lazy(() => import("components/general/Chatbot"));
+const Chatbot = lazy(() => import("components/chatbot/Chatbot"));
 const ThemeDecorations = lazy(() => import("components/common/ThemeDecorations"));
 const ChristmasDecorations = lazy(() => import("components/common/ChristmasDecorations"));
 const HalloweenDecorations = lazy(() => import("components/common/HalloweenDecorations"));
@@ -39,6 +40,7 @@ function useDeferredMount(timeout = 2500) {
 
 function DeferredLayoutWidgets({ theme, currentTheme }) {
   const isReady = useDeferredMount();
+  const { user } = useAuth();
 
   if (!isReady) return null;
 
@@ -49,7 +51,8 @@ function DeferredLayoutWidgets({ theme, currentTheme }) {
         : currentTheme === "halloween"
           ? <HalloweenDecorations />
           : <ThemeDecorations theme={currentTheme} />)}
-      <Chatbot />
+      {/* Remount on account switch so one user never sees the previous user's messages. */}
+      <Chatbot key={user?._id || user?.id || "guest"} />
       <MailboxFAB />
     </Suspense>
   );

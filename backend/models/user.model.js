@@ -97,6 +97,11 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: ['none'],
     },
+    // Long-term preferences the chat assistant remembers (update_memory tool), max 20
+    chatMemory: {
+      type: [String],
+      default: [],
+    },
     // Halloween fortune candy: last draw, one per Vietnam day
     halloweenFortune: {
       dateKey: String,

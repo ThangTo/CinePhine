@@ -66,21 +66,24 @@ chatSchema.virtual('messageCount').get(function () {
 });
 
 // Method để thêm tin nhắn mới
+const MAX_STORED_MESSAGES = 50;
+
 chatSchema.methods.addMessage = function (role, content) {
   this.messages.push({ role, content, timestamp: new Date() });
+  if (this.messages.length > MAX_STORED_MESSAGES) {
+    this.messages.splice(0, this.messages.length - MAX_STORED_MESSAGES);
+  }
   return this.save();
 };
 
 // Static method để tìm hoặc tạo chat session
 chatSchema.statics.findOrCreateSession = async function ({ userId, sessionId }) {
-  let chat = await this.findOne({
-    $or: [
-      userId ? { userId, isActive: true } : null,
-      sessionId ? { sessionId, isActive: true } : null,
-    ].filter(Boolean),
-  })
-    .sort({ updatedAt: -1 })
-    .limit(1);
+  // Logged-in users own their chats by userId; guests only see guest chats, so a shared
+  // browser sessionId never exposes or continues an account's conversation.
+  const owner = userId ? { userId } : sessionId ? { sessionId, userId: null } : null;
+  let chat = owner
+    ? await this.findOne({ ...owner, isActive: true }).sort({ updatedAt: -1 })
+    : null;
 
   if (!chat) {
     chat = await this.create({

@@ -1151,6 +1151,7 @@ const search = async (q, options = {}) => {
           type: 1,
           category: 1,
           score: 1,
+          isHidden: 1,
           // Giữ lại meta count để return về controller
           totalCount: '$searchMeta.count.total',
         },
@@ -2038,6 +2039,7 @@ const getRecommendations = async (movieId, limit = 10) => {
           viewCount: 1,
           rating: 1,
           score: 1,
+          isHidden: 1,
         },
       },
     ];
@@ -2439,6 +2441,7 @@ const getForYou = async (userId, limit = 20) => {
           rating: 1,
           score: 1,
           categories: 1, // Thêm để check diversity
+          isHidden: 1,
         },
       },
     ];

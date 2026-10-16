@@ -6,7 +6,8 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const Chat = require('../models/chat.model');
 const Movie = require('../models/movie.model');
-const { handleChat } = require('../services/chat.service');
+const { runAgent } = require('../services/chat');
+const handleChat = async (opts) => (await runAgent(opts)).answer;
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const PERF_THRESHOLD_MS = 5000; // 5 seconds

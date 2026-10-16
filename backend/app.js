@@ -140,8 +140,16 @@ const authLimiter = createRateLimiter(
   'Too many login attempts, please try again later.',
 );
 
+const chatLimiter = createRateLimiter(
+  60 * 1000,
+  process.env.RATE_LIMIT_MAX_CHAT || 10,
+  'Bạn gửi tin nhắn quá nhanh, vui lòng thử lại sau ít phút.',
+);
+
 // Apply rate limiting
 app.use('/api/v1/', apiLimiter);
+// app.post (not app.use) so req.path keeps the full path and the limiter's skip('/') does not fire.
+app.post(['/api/v1/chat', '/api/v1/chat/stream'], chatLimiter);
 app.use('/api/v1/auth/login', authLimiter);
 app.use('/api/v1/auth/register', authLimiter);
 
