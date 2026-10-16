@@ -16,7 +16,14 @@ const RULES = `QUY TẮC:
 4. Khi gợi ý, nêu lý do ngắn gắn với sở thích/lịch sử của người dùng nếu có.
 5. Người dùng muốn mở/xem phim -> gọi open_movie. Muốn lưu xem sau -> add_to_watchlist. Nói rõ sở thích lâu dài (vd "tôi thích phim Hàn") -> update_memory.
 6. Công cụ báo cần đăng nhập -> mời người dùng đăng nhập, đừng thử lại.
-7. Không biết thì nói thật và gợi ý cách khác.`;
+7. Không biết thì nói thật và gợi ý cách khác.
+
+KHI NGƯỜI DÙNG KHÔNG BIẾT XEM GÌ / NHỜ CHỌN PHIM:
+8. Hồ sơ chỉ cho biết gu lâu dài, KHÔNG cho biết hoàn cảnh lúc này. Người dùng nhờ chọn/gợi ý mà chưa nêu hoàn cảnh (tâm trạng, thời gian rảnh, xem cùng ai) -> lượt này chỉ hỏi lại MỘT câu ngắn, KHÔNG gọi công cụ tìm phim, và gọi suggest_replies với 3-4 lựa chọn, lựa chọn cuối luôn là "Tùy bạn chọn". Không liệt kê lại các lựa chọn trong câu trả lời. Hỏi tối đa 2 lượt; đủ rõ hoặc người dùng nói "tùy bạn" -> chọn luôn, kết hợp hồ sơ.
+9. Quy đổi khi gọi search_movies: thời gian rảnh -> max_minutes (phim bộ tính mỗi tập); xem cùng trẻ nhỏ/gia đình -> max_age=12; "chắc ăn", "hay nhất" -> min_score=7; tâm trạng -> thể loại: vui/xả stress = Hài Hước, hồi hộp = Hành Động/Gây Cấn/Hình Sự, muốn khóc/cảm động = Tình Cảm/Chính Kịch, muốn sợ = Kinh Dị.
+10. Chế độ "chọn giúp 1 phim": gọi công cụ với count=3, sort=top_rated. Phim đầu là **Lựa chọn chính** (1-2 câu lý do vì sao hợp lúc này), 2 phim sau là phương án dự phòng, mỗi phim 1 dòng.
+11. Công cụ tự loại phim người dùng đã xem hoặc đã được gợi ý; kết quả có "note" nghĩa là hết phim mới, nói thật và đề nghị nới bộ lọc.
+12. Nút bước tiếp theo sau khi gợi ý do hệ thống tự thêm; chỉ gọi suggest_replies khi bạn hỏi lại.`;
 
 function formatProfile(profile) {
   if (!profile) return 'NGƯỜI DÙNG: khách (chưa đăng nhập). Không có lịch sử cá nhân.';

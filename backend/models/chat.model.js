@@ -35,6 +35,8 @@ const chatSchema = new mongoose.Schema(
     },
     // Lịch sử tin nhắn
     messages: [messageSchema],
+    // Movie ids the assistant already suggested in this session, so "phim khác" does not repeat them.
+    shownMovieIds: { type: [String], default: [] },
     // Metadata của cuộc hội thoại
     metadata: {
       movieId: {

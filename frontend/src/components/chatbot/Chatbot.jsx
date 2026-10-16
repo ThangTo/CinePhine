@@ -15,7 +15,7 @@ const MOVIE_PAGE = /\/(movie|watch)\/([a-f0-9]{24})/i;
 const SAFE_ACTION_PATH = /^\/(movie|watch)\/[\w-]+$/;
 
 const MOVIE_PAGE_CHIPS = ["Phim này nói về gì?", "Gợi ý phim tương tự", "Thêm phim này vào xem sau"];
-const DEFAULT_CHIPS = ["Gợi ý phim hợp gu tôi", "Phim đang hot", "Phim mới cập nhật", "Phim tôi đang xem dở"];
+const DEFAULT_CHIPS = ["Chọn giúp tôi 1 phim", "Gợi ý phim hợp gu tôi", "Phim đang hot", "Phim tôi đang xem dở"];
 
 let emojiMartLoadPromise = null;
 
@@ -93,7 +93,9 @@ const Chatbot = () => {
   const { messages, isSending, send, stop, reset } = useChatStream({ onAction: handleAction, active: showChatbot });
 
   const movieId = pathname.match(MOVIE_PAGE)?.[2];
-  const chips = movieId ? MOVIE_PAGE_CHIPS : DEFAULT_CHIPS;
+  // Quick replies the bot attached to its latest answer win over the static chips.
+  const botSuggestions = messages[messages.length - 1]?.suggestions;
+  const chips = botSuggestions?.length ? botSuggestions : movieId ? MOVIE_PAGE_CHIPS : DEFAULT_CHIPS;
   const chipsDrag = useDragScroll();
   const metadata = useMemo(() => ({ page: pathname, ...(movieId ? { movieId } : {}) }), [pathname, movieId]);
 

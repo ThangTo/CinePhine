@@ -115,6 +115,7 @@ export default function useChatStream({ onAction, active = true } = {}) {
         if (event.type === "status") patchMessage(botId, { status: event.text });
         else if (event.type === "movies") patchMessage(botId, { movies: event.movies });
         else if (event.type === "action") onActionRef.current?.(event.action);
+        else if (event.type === "suggestions") patchMessage(botId, { suggestions: event.options });
         else if (event.type === "token") patchMessage(botId, (msg) => ({ content: msg.content + (event.content || ""), status: null }));
         else if (event.type === "done")
           patchMessage(botId, (msg) => ({ content: event.answer || msg.content, movies: event.movies?.length ? event.movies : msg.movies }));

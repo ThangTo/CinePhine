@@ -83,10 +83,11 @@ test('runs a tool round, emits movie cards without hidden ones, then streams the
     }),
   });
 
-  assert.deepEqual(calls.search.opts, { genre: 'kinh-di', country: 'han-quoc', limit: 12 });
+  assert.deepEqual(calls.search.opts, { genre: 'kinh-di', country: 'han-quoc', limit: 40 });
   assert.deepEqual(result.movies.map((m) => m.id), ['a1', 'b2']);
   assert.equal(result.answer, 'Day la phim');
-  assert.deepEqual(events.map((e) => e.type), ['status', 'movies', 'token', 'token']);
+  assert.deepEqual(events.map((e) => e.type), ['status', 'movies', 'suggestions', 'token', 'token']);
+  assert.deepEqual(result.suggestions, ['Gợi ý phim khác', 'Phim ngắn hơn', 'Phim điểm cao hơn']);
   const toolMsg = followUp.at(-1);
   assert.equal(toolMsg.role, 'tool');
   assert.equal(toolMsg.tool_call_id, 'c1');
@@ -204,4 +205,64 @@ test('get_movie_details merges TMDB facts and still answers when TMDB has nothin
   assert.equal(miss.result.tmdb, undefined);
   assert.equal(noRef.result.description, 'DB mo ta');
   assert.deepEqual(tmdbCalls, [[42, 'tv'], [7, undefined]]);
+});
+
+test('discovery: maps runtime/age/score/multi-genre, skips seen movies, falls back with a note', async () => {
+  const calls = {};
+  const movieService = {
+    getFilterOptions: async () => ({
+      genres: [{ name: 'Hài Hước', slug: 'hai-huoc' }, { name: 'Gia Đình', slug: 'gia-dinh' }],
+      countries: [],
+    }),
+    search: async (q, opts) => {
+      calls.search = { q, opts };
+      return {
+        data: [
+          movie('long', { duration: '130 phút' }),
+          movie('seen', { duration: '90 Phút', tmdb: { vote_average: 9 } }),
+          movie('na', { duration: 'N/A' }),
+          movie('soon', { duration: '80 phút', status: 'upcoming' }),
+          movie('ok1', { duration: '95 phút', tmdb: { vote_average: 7.2 } }),
+          movie('ok2', { duration: '45 phút/tập', tmdb: { vote_average: 8.04 } }),
+        ],
+      };
+    },
+  };
+  const historyRows = [{ movieId: 'seen' }];
+  const chain = { sort: () => chain, limit: () => chain, select: () => chain, lean: async () => historyRows };
+  const models = { UserHistory: { find: () => chain } };
+  const args = { genre: 'hài hước và gia đình', max_minutes: 100, max_age: 10, sort: 'top_rated', count: 3 };
+
+  const out = await executeTool('search_movies', args, { userId: 'u1', deps: { movieService, models }, shownIds: ['x'] });
+  assert.deepEqual(calls.search.opts, { genres: ['hai-huoc', 'gia-dinh'], ageRating: ['T12'], scoreMin: 7, limit: 40 });
+  assert.deepEqual(out.movies.map((m) => m.id), ['ok2', 'ok1']); // top_rated order; seen/long/N/A/upcoming dropped
+  assert.equal(out.movies[0].rating, 8);
+
+  const stale = await executeTool('search_movies', { max_minutes: 100 }, { deps: { movieService, models }, shownIds: ['seen', 'ok1', 'ok2'] });
+  assert.equal(stale.movies.length, 3);
+  assert.match(stale.result.note, /đã xem hoặc đã được gợi ý/);
+});
+
+test('suggest_replies emits a suggestions event; shown movie ids persist on the session', async () => {
+  const session = { messages: [], shownMovieIds: ['old'], addMessage: async () => {} };
+  const events = [];
+  const result = await runAgent({
+    message: 'chon giup toi 1 phim',
+    onEvent: (e) => events.push(e),
+    deps: baseDeps({
+      chatModel: { findOrCreateSession: async () => session },
+      toolDeps: { movieService: fakeMovieService(), models: {} },
+      llmComplete: async () => ({
+        content: '',
+        toolCalls: [
+          { id: 'c1', function: { name: 'suggest_replies', arguments: { options: ['Vui vẻ', '<b>Hồi hộp</b>', 'Vui vẻ', 'a', 'b'] } } },
+          { id: 'c2', function: { name: 'search_movies', arguments: { query: 'x' } } },
+        ],
+      }),
+    }),
+  });
+  const expected = ['Vui vẻ', 'Hồi hộp', 'a', 'b'];
+  assert.deepEqual(events.find((e) => e.type === 'suggestions').options, expected);
+  assert.deepEqual(result.suggestions, expected);
+  assert.deepEqual(session.shownMovieIds, ['old', 'a1', 'b2']);
 });

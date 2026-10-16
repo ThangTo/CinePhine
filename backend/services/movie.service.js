@@ -366,6 +366,12 @@ const buildQuery = (filters = {}, useTextSearch = true) => {
     if (filters.ratingMax) query.rating.$lte = Number(filters.ratingMax);
   }
 
+  // TMDB score floor (the populated score field); the vote floor drops 10/10-from-3-votes noise.
+  if (filters.scoreMin) {
+    query['tmdb.vote_average'] = { $gte: Number(filters.scoreMin) };
+    query['tmdb.vote_count'] = { $gte: 20 };
+  }
+
   // Language/Version filter (subtitle, dubbed, etc.)
   // Note: audioType is stored in Episode model, not Movie model
   // This filter will be handled separately in getAll function using aggregation

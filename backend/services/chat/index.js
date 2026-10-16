@@ -23,7 +23,10 @@ const STATUS_TEXT = {
   add_to_watchlist: 'Đang thêm vào danh sách xem sau...',
   open_movie: 'Đang mở phim...',
   update_memory: 'Đang ghi nhớ sở thích của bạn...',
+  suggest_replies: 'Đang soạn gợi ý...',
 };
+const MAX_SUGGESTIONS = 4;
+const MAX_SHOWN_IDS = 60;
 
 function normalizeImageAttachmentData(data) {
   const value = String(data || '').trim();
@@ -99,12 +102,12 @@ async function streamAnswer({ messages, onToken, llmStream, llmComplete }) {
   return streamed;
 }
 
-async function runTools(calls, { userId, toolDeps, onEvent }) {
+async function runTools(calls, { userId, toolDeps, shownIds, onEvent }) {
   return Promise.all(
     calls.map(async (call) => {
       const name = call.function?.name;
       onEvent({ type: 'status', text: STATUS_TEXT[name] || 'Đang xử lý...' });
-      const out = await executeTool(name, parseArgs(call.function?.arguments), { userId, deps: toolDeps });
+      const out = await executeTool(name, parseArgs(call.function?.arguments), { userId, deps: toolDeps, shownIds });
       return { call, out };
     }),
   );
@@ -117,7 +120,11 @@ function collectUiPayload(results) {
     .filter((m) => !seen.has(m.id) && seen.add(m.id))
     .slice(0, MAX_MOVIES);
   const actions = results.map(({ out }) => out.action).filter(Boolean);
-  return { movies, actions };
+  const pick = (key) => [...new Set(results.flatMap(({ out }) => out[key] || []))].slice(0, MAX_SUGGESTIONS);
+  // The LLM's own quick replies (asking back) win; otherwise discovery tools' default next steps.
+  const own = pick('suggestions');
+  const suggestions = own.length ? own : movies.length ? pick('nextSteps') : [];
+  return { movies, actions, suggestions };
 }
 
 /**
@@ -160,7 +167,7 @@ async function runAgent({ userId = null, message, metadata = {}, sessionId, atta
 
   const onToken = (content) => onEvent({ type: 'token', content });
   let answer = '';
-  let ui = { movies: [], actions: [] };
+  let ui = { movies: [], actions: [], suggestions: [] };
   try {
     const first = await llmComplete({ scope: 'CHATBOT', messages, tools: TOOLS, tool_choice: 'auto', temperature: 0.4 });
     const calls = (first.toolCalls || []).slice(0, MAX_TOOL_CALLS);
@@ -170,10 +177,11 @@ async function runAgent({ userId = null, message, metadata = {}, sessionId, atta
       if (answer) onToken(answer);
     } else {
       // ponytail: one tool round, then a streamed answer; add a loop when a tool needs another tool's output.
-      const results = await runTools(calls, { userId, toolDeps, onEvent });
+      const results = await runTools(calls, { userId, toolDeps, shownIds: session?.shownMovieIds || [], onEvent });
       ui = collectUiPayload(results);
       if (ui.movies.length) onEvent({ type: 'movies', movies: ui.movies });
       ui.actions.forEach((action) => onEvent({ type: 'action', action }));
+      if (ui.suggestions.length) onEvent({ type: 'suggestions', options: ui.suggestions });
 
       answer = await streamAnswer({
         messages: [
@@ -198,6 +206,10 @@ async function runAgent({ userId = null, message, metadata = {}, sessionId, atta
 
   if (session) {
     try {
+      if (ui.movies.length) {
+        // Saved by addMessage's save() below.
+        session.shownMovieIds = [...new Set([...(session.shownMovieIds || []), ...ui.movies.map((m) => m.id)])].slice(-MAX_SHOWN_IDS);
+      }
       await session.addMessage('user', userText);
       await session.addMessage('assistant', answer);
     } catch (error) {
