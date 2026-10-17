@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const { runAgent } = require('./index');
 const { executeTool, matchSlug } = require('./tools');
+const { buildTasteSignals, tasteWeights, topKeys, tasteReason } = require('../../utils/tasteProfile');
 
 const fakeSession = (messages = [], saved = []) => ({
   findOrCreateSession: async () => ({
@@ -21,6 +22,16 @@ const baseDeps = (overrides = {}) => ({
 });
 
 const movie = (id, extra = {}) => ({ id, title: `Phim ${id}`, year: 2024, poster: 'p.jpg', genres: [{ name: 'Kinh Dị' }], ...extra });
+
+// Mongoose-like chain for UserHistory.find(...) and User.findById(...)
+const lean = (value) => {
+  const chain = { sort: () => chain, limit: () => chain, select: () => chain, lean: async () => value };
+  return chain;
+};
+const userModels = (historyRows = [], dislikedMovieIds = []) => ({
+  UserHistory: { find: () => lean(historyRows) },
+  User: { findById: () => lean({ dislikedMovieIds }) },
+});
 
 const fakeMovieService = (calls = {}) => ({
   getFilterOptions: async () => ({
@@ -228,9 +239,7 @@ test('discovery: maps runtime/age/score/multi-genre, skips seen movies, falls ba
       };
     },
   };
-  const historyRows = [{ movieId: 'seen' }];
-  const chain = { sort: () => chain, limit: () => chain, select: () => chain, lean: async () => historyRows };
-  const models = { UserHistory: { find: () => chain } };
+  const models = userModels([{ movieId: 'seen' }]);
   const args = { genre: 'hài hước và gia đình', max_minutes: 100, max_age: 10, sort: 'top_rated', count: 3 };
 
   const out = await executeTool('search_movies', args, { userId: 'u1', deps: { movieService, models }, shownIds: ['x'] });
@@ -265,4 +274,45 @@ test('suggest_replies emits a suggestions event; shown movie ids persist on the 
   assert.deepEqual(events.find((e) => e.type === 'suggestions').options, expected);
   assert.deepEqual(result.suggestions, expected);
   assert.deepEqual(session.shownMovieIds, ['old', 'a1', 'b2']);
+});
+
+test('recommend_movies: cards carry a reason; disliked movies never return, even when all else was seen', async () => {
+  const movieService = {
+    getTopRated: async () => ({ data: [movie('d1'), movie('a1')] }),
+    getForYou: async () => ({ data: [movie('f1', { reason: 'Vì bạn thích Phim X' }), movie('d1')] }),
+  };
+  const ctx = { userId: 'u1', deps: { movieService, models: userModels([], ['d1']) } };
+
+  const top = await executeTool('recommend_movies', { source: 'top_rated' }, { ...ctx, shownIds: ['a1'] });
+  assert.deepEqual(top.movies.map((m) => [m.id, m.reason]), [['a1', 'Được đánh giá cao']]);
+  assert.match(top.result.note, /đã xem hoặc đã được gợi ý/);
+
+  const forMe = await executeTool('recommend_movies', { source: 'for_me' }, ctx);
+  assert.deepEqual(forMe.movies.map((m) => m.id), ['f1']);
+  assert.equal(forMe.result.movies[0].reason, 'Vì bạn thích Phim X'); // the LLM can cite it
+});
+
+test('taste profile: favorites and high ratings outweigh history; low ratings and dislikes are excluded', () => {
+  const m = (id, genres, extra = {}) => ({ _id: id, name: `Phim ${id}`, categories: genres.map((g) => ({ slug: g, name: g.toUpperCase() })), ...extra });
+  const now = Date.now();
+  const { signals, excludeIds } = buildTasteSignals(
+    {
+      history: [{ movieId: m('h1', ['hai']), progress: 100, lastWatchedAt: now }],
+      favorites: [{ movieId: m('f1', ['kinh-di'], { director: ['Dao Dien A'] }) }],
+      ratings: [
+        { movieId: m('r10', ['kinh-di', 'hanh-dong']), rating: 10 },
+        { movieId: m('r2', ['tinh-cam', 'hai']), rating: 2 },
+      ],
+      watchlist: [{ movieId: m('w1', ['tinh-cam']) }],
+      disliked: [m('d1', ['tinh-cam'])],
+    },
+    now,
+  );
+  const taste = tasteWeights(signals);
+
+  assert.deepEqual(topKeys(taste.genres, 8), ['kinh-di', 'hanh-dong']); // hai: 1 - 1, tinh-cam: 0.3 - 2
+  assert.deepEqual(excludeIds.sort(), ['d1', 'f1', 'h1', 'r10', 'r2']);
+  assert.equal(tasteReason(m('x1', ['vien-tuong'], { director: ['Dao Dien A'] }), taste), 'Vì bạn thích Phim f1');
+  assert.equal(tasteReason(m('x2', ['hanh-dong', 'vien-tuong']), taste), 'Cùng thể loại HANH-DONG bạn hay xem');
+  assert.equal(tasteReason(m('x3', ['tinh-cam']), taste), undefined);
 });

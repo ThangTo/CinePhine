@@ -81,6 +81,18 @@ const userService = {
     }),
 
   /**
+   * An movie khoi goi y (nut "Khong hop" trong chatbot)
+   * @param {string} movieId - Movie ID
+   * @returns {Promise<Object>} { message }
+   */
+  dislikeMovie: (movieId) =>
+    apiRequest(`/users/disliked`, {
+      method: "POST",
+      data: { movieId },
+      requiresAuth: true,
+    }),
+
+  /**
    * Lấy danh sách watchlist của user hiện tại
    * @param {Object} params - { page?, limit? }
    * @returns {Promise<Object>} { data: [], pagination: {} }

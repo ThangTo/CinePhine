@@ -124,6 +124,7 @@ function toMovieCard(m) {
     ageRating: m.ageRating || m.age_rating || '',
     genres: names(m.genres || m.categories).slice(0, 3),
     ...(m.progress != null ? { progress: m.progress } : {}),
+    ...(m.reason ? { reason: m.reason } : {}),
   };
 }
 
@@ -132,8 +133,9 @@ const brief = ({ poster, thumb, slug, id, ...rest }) => ({ movie_id: id, ...rest
 
 // `skip`: ids to leave out (watched / already suggested). If that empties the list,
 // the skipped ones are returned anyway with a note so the LLM does not present them as new.
-function moviesResult(list = [], extra = {}, { skip, count = MAX_RESULTS } = {}) {
-  const seen = new Set();
+// `block`: ids never returned ("not for me").
+function moviesResult(list = [], extra = {}, { skip, block, count = MAX_RESULTS } = {}) {
+  const seen = new Set(block);
   const cards = list.map(toMovieCard).filter((c) => c && !seen.has(c.id) && seen.add(c.id));
   const fresh = skip ? cards.filter((c) => !skip.has(c.id)) : cards;
   const allSeen = !fresh.length && cards.length > 0;
@@ -153,10 +155,16 @@ const minutesOf = (time) => parseInt(String(time || '').match(/(\d+)\s*phút/i)?
 const ageRatingsUpTo = (maxAge) => Object.keys(AGE_LEVELS).filter((k) => AGE_LEVELS[k] <= Math.max(maxAge, 12));
 
 async function seenIds(userId, { models }, shownIds = []) {
-  const history = userId
-    ? await models.UserHistory.find({ userId }).sort({ lastWatchedAt: -1 }).limit(MAX_WATCHED).select('movieId').lean()
-    : [];
-  return new Set([...shownIds, ...history.map((h) => String(h.movieId))]);
+  const [history, user] = userId
+    ? await Promise.all([
+        models.UserHistory.find({ userId }).sort({ lastWatchedAt: -1 }).limit(MAX_WATCHED).select('movieId').lean(),
+        models.User.findById(userId).select('dislikedMovieIds').lean(),
+      ])
+    : [[], null];
+  return {
+    skip: new Set([...shownIds, ...history.map((h) => String(h.movieId))]),
+    block: new Set((user?.dislikedMovieIds || []).map(String)),
+  };
 }
 
 async function searchFilters(args, movieService) {
@@ -214,7 +222,7 @@ const handlers = {
       const { data = [] } = await deps.movieService.search(args.query, { ...filters, limit: MAX_RESULTS * 2 });
       return moviesResult(data, extra, { count: countOf(args) });
     }
-    const [{ data = [] }, skip] = await Promise.all([
+    const [{ data = [] }, { skip, block }] = await Promise.all([
       deps.movieService.search('', { ...filters, limit: POOL_SIZE }),
       seenIds(userId, deps, shownIds),
     ]);
@@ -223,7 +231,7 @@ const handlers = {
     // Unknown runtime ("N/A") counts as too long: the user set a time budget.
     if (maxMinutes > 0) list = list.filter((m) => (minutesOf(m.duration || m.time) || Infinity) <= maxMinutes);
     if (args.sort === 'top_rated') list = [...list].sort((a, b) => (b.tmdb?.vote_average || 0) - (a.tmdb?.vote_average || 0));
-    return { ...moviesResult(list, extra, { skip, count: countOf(args) }), nextSteps: NEXT_STEPS };
+    return { ...moviesResult(list, extra, { skip, block, count: countOf(args) }), nextSteps: NEXT_STEPS };
   },
 
   async get_movie_details(args, { movieService, tmdb }) {
@@ -259,9 +267,13 @@ const handlers = {
       top_rated: () => movieService.getTopRated(n),
       new: () => movieService.getNewReleases(n),
     }[args.source] || (() => movieService.getTrending(n));
-    const [{ data = [] }, skip] = await Promise.all([list(), seenIds(userId, deps, shownIds)]);
+    const [{ data = [] }, { skip, block }] = await Promise.all([list(), seenIds(userId, deps, shownIds)]);
     if (base) skip.add(String(base.id));
-    return { ...moviesResult(data, base ? { similarTo: base.title } : {}, { skip, count: countOf(args) }), nextSteps: NEXT_STEPS };
+    // One "why" line per card; for_me rows bring their own from getForYou.
+    const reason = args.source === 'for_me' ? undefined
+      : { similar: `Giống ${base?.title}`, top_rated: 'Được đánh giá cao', new: 'Mới ra mắt' }[args.source] || 'Đang thịnh hành';
+    const rows = reason ? data.map((m) => ({ ...m, reason })) : data;
+    return { ...moviesResult(rows, base ? { similarTo: base.title } : {}, { skip, block, count: countOf(args) }), nextSteps: NEXT_STEPS };
   },
 
   async get_my_library({ list }, { models }, userId) {

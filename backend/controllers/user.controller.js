@@ -296,6 +296,15 @@ const getContinueWatching = async (req, res) => {
   }
 };
 
+const dislikeMovie = async (req, res) => {
+  try {
+    await userService.dislikeMovie(getUserId(req), req.body?.movieId);
+    res.status(200).json({ message: 'Movie hidden from recommendations' });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ message: error.message });
+  }
+};
+
 const getCoinHistory = async (req, res) => {
   try {
     const userId = await getUserId(req);
@@ -496,6 +505,7 @@ module.exports = {
   addToWatchlist,
   removeFromWatchlist,
   getWatchlist,
+  dislikeMovie,
   getHistory,
   getContinueWatching,
   getCoinHistory,

@@ -30,4 +30,7 @@ ratingSchema.index({ movieId: 1, userId: 1 }, { unique: true });
 // Thêm index riêng cho movieId để tìm kiếm/tính toán nhanh hơn
 ratingSchema.index({ movieId: 1 });
 
+// Per-user lookups (getForYou taste profile)
+ratingSchema.index({ userId: 1, updatedAt: -1 });
+
 module.exports = mongoose.model("Rating", ratingSchema);

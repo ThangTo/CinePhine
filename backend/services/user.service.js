@@ -1,4 +1,6 @@
 const UserHistory = require('../models/user_history.model');
+const User = require('../models/user.model');
+const Movie = require('../models/movie.model');
 const { transformMovie } = require('../utils/movieTransformer');
 
 /**
@@ -284,7 +286,27 @@ const deleteProgress = async (userId, movieId) => {
   return deleted;
 };
 
+const MAX_DISLIKED = 200;
+
+/**
+ * Mark a movie "not for me": getForYou and the chat assistant stop suggesting it.
+ * Idempotent; keeps the latest MAX_DISLIKED ids.
+ */
+const dislikeMovie = async (userId, movieId) => {
+  if (!/^[a-f0-9]{24}$/i.test(String(movieId || ''))) {
+    throw Object.assign(new Error('Invalid movie ID'), { statusCode: 400 });
+  }
+  if (!(await Movie.exists({ _id: movieId }))) {
+    throw Object.assign(new Error('Movie not found'), { statusCode: 404 });
+  }
+  await User.updateOne(
+    { _id: userId, dislikedMovieIds: { $ne: movieId } },
+    { $push: { dislikedMovieIds: { $each: [movieId], $slice: -MAX_DISLIKED } } },
+  );
+};
+
 module.exports = {
+  dislikeMovie,
   addToFavorites,
   removeFromFavorites,
   getFavorites,

@@ -6,6 +6,8 @@ import { readEventStream } from "hooks/useChatStream";
 import useDragScroll from "hooks/useDragScroll";
 
 jest.mock("components/common/LazySection", () => ({ useSectionVisible: () => true }));
+jest.mock("hooks/useAuth", () => () => ({ isAuthenticated: false }));
+jest.mock("services/user.service", () => ({}));
 jest.mock("react-router-dom", () => ({ Link: ({ to, ...props }) => <a href={to} {...props} /> }), { virtual: true });
 
 test("parses paragraphs, headings, bold and both list kinds", () => {

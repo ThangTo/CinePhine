@@ -29,6 +29,9 @@ router.delete('/watchlist/:movieId', authMiddleware, userController.removeFromWa
 // GET /api/v1/users/watchlist - Get watchlist
 router.get('/watchlist', authMiddleware, userController.getWatchlist);
 
+// POST /api/v1/users/disliked - Hide a movie from recommendations ("not for me")
+router.post('/disliked', authMiddleware, userController.dislikeMovie);
+
 // GET /api/v1/users/history - Get watch history
 router.get('/history', authMiddleware, userController.getHistory);
 

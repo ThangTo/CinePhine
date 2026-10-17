@@ -102,6 +102,11 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    // Movies marked "not for me" in chat; excluded from recommendations, last 200 kept
+    dislikedMovieIds: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Movie' }],
+      default: [],
+    },
     // Halloween fortune candy: last draw, one per Vietnam day
     halloweenFortune: {
       dateKey: String,

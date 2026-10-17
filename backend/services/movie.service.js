@@ -15,6 +15,7 @@ const {
   transformPaginatedResult,
 } = require('../utils/movieTransformer');
 const { isLatinName } = require('../utils/castUtils');
+const { buildTasteSignals, tasteWeights, topKeys, tasteReason } = require('../utils/tasteProfile');
 const { normalizeAvatarForOutput } = require('../utils/avatarUtils');
 const { isPremiumActive } = require('./premium.service');
 
@@ -2205,130 +2206,51 @@ const getRecommendationsFallback = async (
 const getForYou = async (userId, limit = 20) => {
   try {
     const UserHistory = require('../models/user_history.model');
+    const UserFavorite = require('../models/user_favorite.model');
+    const UserWatchlist = require('../models/user_watchlist.model');
+    const User = require('../models/user.model');
+    const TASTE_FIELDS = 'name categories director actor country';
+    const byUser = (Model, n, sort) =>
+      Model.find({ userId }).sort(sort).limit(n).populate('movieId', TASTE_FIELDS).lean();
 
-    // 1. Lấy lịch sử xem của user (50 phim gần nhất để có đủ data)
-    const historyRecords = await UserHistory.find({ userId })
-      .sort({ lastWatchedAt: -1 })
-      .limit(50)
-      .populate('movieId')
-      .lean();
+    // 1. Library signals: history (decayed by time x progress), favorites, ratings, watchlist, "not for me"
+    const [history, favorites, ratings, watchlist, user] = await Promise.all([
+      byUser(UserHistory, 50, { lastWatchedAt: -1 }),
+      byUser(UserFavorite, 30, { createdAt: -1 }),
+      byUser(Rating, 50, { updatedAt: -1 }),
+      byUser(UserWatchlist, 30, { createdAt: -1 }),
+      User.findById(userId).select('dislikedMovieIds').populate('dislikedMovieIds', TASTE_FIELDS).lean(),
+    ]);
+    const { signals, excludeIds } = buildTasteSignals({
+      history,
+      favorites,
+      ratings,
+      watchlist,
+      disliked: user?.dislikedMovieIds,
+    });
+    const excluded = new Set(excludeIds.map(String));
 
-    if (!historyRecords || historyRecords.length === 0) {
-      // Nếu chưa có lịch sử, trả về trending + top rated
-      const [trending, topRated] = await Promise.all([
-        getTrending(Math.ceil(limit / 2)),
-        getTopRated(Math.ceil(limit / 2)),
-      ]);
+    // Trending + top rated, tagged with a reason, minus seen/disliked titles
+    const popular = async (n) => {
+      const [trending, topRated] = await Promise.all([getTrending(Math.ceil(n / 2)), getTopRated(Math.ceil(n / 2))]);
+      const tagged = [
+        ...trending.data.map((m) => ({ ...m, reason: 'Đang thịnh hành' })),
+        ...topRated.data.map((m) => ({ ...m, reason: 'Được đánh giá cao' })),
+      ].filter((m) => !excluded.has(String(m.id)));
+      return Array.from(new Map(tagged.map((m) => [m.id, m])).values());
+    };
 
-      const combined = [...trending.data, ...topRated.data];
-      // Remove duplicates
-      const uniqueMovies = Array.from(new Map(combined.map((m) => [m.id, m])).values());
-
-      return {
-        data: uniqueMovies.slice(0, limit),
-      };
+    if (!signals.some((s) => s.weight > 0)) {
+      // No positive signal yet: trending + top rated
+      return { data: (await popular(limit)).slice(0, limit) };
     }
 
-    // 2. Phân tích lịch sử với time decay và progress weight
-    const now = Date.now();
-    const ONE_DAY = 24 * 60 * 60 * 1000;
-    const THIRTY_DAYS = 30 * ONE_DAY;
-
-    const watchedMovies = historyRecords
-      .map((h) => {
-        const daysSinceWatch = (now - new Date(h.lastWatchedAt).getTime()) / ONE_DAY;
-
-        // Time decay: phim xem gần đây có trọng số cao hơn
-        // Decay exponentially: e^(-days/30)
-        const timeWeight = Math.exp(-daysSinceWatch / 30);
-
-        // Progress weight: phim xem nhiều có trọng số cao hơn
-        const progressWeight = Math.max(0.1, (h.progress || 0) / 100);
-
-        // Combined weight
-        const weight = timeWeight * progressWeight;
-
-        return {
-          movie: h.movieId,
-          progress: h.progress || 0,
-          lastWatchedAt: h.lastWatchedAt,
-          weight: weight,
-        };
-      })
-      .filter((item) => item.movie);
-
-    const watchedMovieIds = watchedMovies.map((item) => item.movie._id);
-
-    // Lấy 10 phim xem gần nhất để loại trừ khỏi recommendations (tránh lặp lại)
-    const recentlyWatchedIds = watchedMovies.slice(0, 10).map((item) => item.movie._id);
-
-    // Thu thập thể loại, đạo diễn, diễn viên, quốc gia từ lịch sử với weighted scoring
-    const genreMap = new Map();
-    const directorMap = new Map();
-    const actorMap = new Map();
-    const countryMap = new Map();
-
-    watchedMovies.forEach(({ movie, weight }) => {
-      // Thể loại
-      if (movie.categories && Array.isArray(movie.categories)) {
-        movie.categories.forEach((cat) => {
-          const slug = typeof cat === 'object' ? cat.slug : cat;
-          if (slug) {
-            genreMap.set(slug, (genreMap.get(slug) || 0) + weight);
-          }
-        });
-      }
-
-      // Đạo diễn
-      if (movie.director && Array.isArray(movie.director)) {
-        movie.director.forEach((dir) => {
-          if (dir) {
-            directorMap.set(dir, (directorMap.get(dir) || 0) + weight);
-          }
-        });
-      }
-
-      // Diễn viên
-      if (movie.actor && Array.isArray(movie.actor)) {
-        movie.actor.slice(0, 5).forEach((actor) => {
-          if (actor) {
-            actorMap.set(actor, (actorMap.get(actor) || 0) + weight);
-          }
-        });
-      }
-
-      // Quốc gia
-      if (movie.country && Array.isArray(movie.country)) {
-        movie.country.forEach((c) => {
-          const slug = typeof c === 'object' ? c.slug : c;
-          if (slug) {
-            countryMap.set(slug, (countryMap.get(slug) || 0) + weight);
-          }
-        });
-      }
-    });
-
-    // 3. Lấy top preferences (sắp xếp theo trọng số)
-    // Tăng số lượng để có diversity
-    const topGenres = Array.from(genreMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8) // Tăng từ 5 lên 8
-      .map(([slug]) => slug);
-
-    const topDirectors = Array.from(directorMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5) // Tăng từ 3 lên 5
-      .map(([name]) => name);
-
-    const topActors = Array.from(actorMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8) // Tăng từ 5 lên 8
-      .map(([name]) => name);
-
-    const topCountries = Array.from(countryMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5) // Tăng từ 3 lên 5
-      .map(([slug]) => slug);
+    // 2-3. Top preferences by weight (disliked/low-rated movies pull theirs down)
+    const taste = tasteWeights(signals);
+    const topGenres = topKeys(taste.genres, 8);
+    const topDirectors = topKeys(taste.directors, 5);
+    const topActors = topKeys(taste.actors, 8);
+    const topCountries = topKeys(taste.countries, 5);
 
     // 4. Xây dựng Atlas Search query với adjusted boost
     const shouldConditions = [];
@@ -2379,17 +2301,7 @@ const getForYou = async (userId, limit = 20) => {
 
     // Nếu không có điều kiện nào, fallback
     if (shouldConditions.length === 0) {
-      const [trending, topRated] = await Promise.all([
-        getTrending(Math.ceil(limit / 2)),
-        getTopRated(Math.ceil(limit / 2)),
-      ]);
-
-      const combined = [...trending.data, ...topRated.data];
-      const uniqueMovies = Array.from(new Map(combined.map((m) => [m.id, m])).values());
-
-      return {
-        data: uniqueMovies.slice(0, limit),
-      };
+      return { data: (await popular(limit)).slice(0, limit) };
     }
 
     // 5. Tạo Pipeline Atlas Search
@@ -2403,10 +2315,10 @@ const getForYou = async (userId, limit = 20) => {
           },
         },
       },
-      // Loại trừ phim đã xem gần đây (10 phim gần nhất)
+      // Exclude the 10 latest views, favorites, rated and "not for me" titles
       {
         $match: {
-          _id: { $nin: recentlyWatchedIds },
+          _id: { $nin: excludeIds },
         },
       },
       // Lấy Score
@@ -2448,6 +2360,9 @@ const getForYou = async (userId, limit = 20) => {
           score: 1,
           categories: 1, // Thêm để check diversity
           isHidden: 1,
+          director: 1, // for the reason line, stripped below
+          actor: 1,
+          country: 1,
         },
       },
     ];
@@ -2483,19 +2398,15 @@ const getForYou = async (userId, limit = 20) => {
     }
 
     // 8. Transform và trả về
-    let result = transformMovies(await attachEpisodeValidation(diverseMovies));
+    const withReason = diverseMovies.map(({ director, actor, country, ...movie }) => ({
+      ...movie,
+      reason: tasteReason({ ...movie, director, actor, country }, taste),
+    }));
+    let result = transformMovies(await attachEpisodeValidation(withReason));
 
     // 9. Nếu không đủ kết quả, bổ sung bằng trending/top rated (loại trừ đã xem gần đây)
     if (result.length < limit) {
-      const needed = limit - result.length;
-      const [trending, topRated] = await Promise.all([
-        getTrending(Math.ceil(needed / 2)),
-        getTopRated(Math.ceil(needed / 2)),
-      ]);
-
-      const additional = [...trending.data, ...topRated.data]
-        .filter((m) => !recentlyWatchedIds.some((id) => id.toString() === m.id))
-        .filter((m) => !result.some((r) => r.id === m.id));
+      const additional = (await popular(limit - result.length)).filter((m) => !result.some((r) => r.id === m.id));
 
       result = [...result, ...additional];
     }
