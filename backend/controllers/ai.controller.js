@@ -735,6 +735,7 @@ async function executeToolCalls(toolCalls, user, context) {
             const exists = await UserFavorite.findOne({ userId: user.id, movieId: movie._id });
             if (!exists) {
               await UserFavorite.create({ userId: user.id, movieId: movie._id });
+              await movieService.invalidateForYou(user.id);
             }
             directReply = "Đã lưu phim vào danh sách yêu thích nha!";
           } else if (args.action === 'COMMENT') {

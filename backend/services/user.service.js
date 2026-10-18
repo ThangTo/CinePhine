@@ -303,6 +303,8 @@ const dislikeMovie = async (userId, movieId) => {
     { _id: userId, dislikedMovieIds: { $ne: movieId } },
     { $push: { dislikedMovieIds: { $each: [movieId], $slice: -MAX_DISLIKED } } },
   );
+  // Lazy require: movie.service is heavy and not needed by the rest of this file
+  await require('./movie.service').invalidateForYou(userId);
 };
 
 module.exports = {

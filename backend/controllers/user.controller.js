@@ -4,6 +4,7 @@ const UserWatchlist = require('../models/user_watchlist.model');
 const UserHistory = require('../models/user_history.model');
 
 const userService = require('../services/user.service');
+const movieService = require('../services/movie.service');
 const authService = require('../services/auth.service');
 const adminService = require('../services/admin.service');
 const cursorEffectService = require('../services/cursorEffect.service');
@@ -85,6 +86,7 @@ const addToFavorites = async (req, res) => {
       userId: userId,
       movieId,
     });
+    await movieService.invalidateForYou(userId);
 
     // Quest progress: favorite event (fire-and-forget)
     questService.checkAndUpdateProgress(userId, { type: 'favorite', movieId }).catch(() => {});
@@ -117,6 +119,7 @@ const removeFromFavorites = async (req, res) => {
     if (!result) {
       return res.status(404).json({ message: 'Favorite not found' });
     }
+    await movieService.invalidateForYou(userId);
 
     res.status(200).json({ message: 'Removed from favorites' });
   } catch (error) {
@@ -179,6 +182,7 @@ const addToWatchlist = async (req, res) => {
       userId: userId,
       movieId,
     });
+    await movieService.invalidateForYou(userId);
 
     // Quest progress: watchlist event (fire-and-forget)
     questService.checkAndUpdateProgress(userId, { type: 'watchlist', movieId }).catch(() => {});
@@ -211,6 +215,7 @@ const removeFromWatchlist = async (req, res) => {
     if (!result) {
       return res.status(404).json({ message: 'Watchlist item not found' });
     }
+    await movieService.invalidateForYou(userId);
 
     res.status(200).json({ message: 'Removed from watchlist' });
   } catch (error) {

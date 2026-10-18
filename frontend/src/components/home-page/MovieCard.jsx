@@ -153,6 +153,12 @@ const MovieCard = ({
               {movie.englishTitle}
             </p>
           )}
+          {/* Only "Dành cho bạn" rows (getForYou) carry a reason */}
+          {movie.reason && (
+            <p className="text-[10px] italic text-primaryColor/80 mt-0.5 line-clamp-1" title={movie.reason}>
+              {movie.reason}
+            </p>
+          )}
         </div>
       </div>
     </WithHoverCard>

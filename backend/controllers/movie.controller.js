@@ -769,7 +769,8 @@ const getForYou = async (req, res) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const limit = Number(req.query.limit) || 20;
+    // Clamped: limit picks the per-user cache bucket and sizes the $search pipeline
+    const limit = Math.min(100, Math.max(1, Math.floor(Number(req.query.limit)) || 20));
     const result = await movieService.getForYou(req.user._id, limit);
 
     res.json(result);

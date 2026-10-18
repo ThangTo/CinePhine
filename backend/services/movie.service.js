@@ -748,7 +748,7 @@ const getTopRated = async (limit = 10) => {
   }
 
   // Cache miss - fetch from DB
-  const data = await Movie.find().sort({ rating: -1, totalRatings: -1 }).limit(limit).lean();
+  const data = await Movie.find({ isHidden: { $ne: true } }).sort({ rating: -1, totalRatings: -1 }).limit(limit).lean();
   const validatedData = await attachEpisodeValidation(data);
   const result = {
     data: transformMovies(validatedData),
@@ -1685,6 +1685,7 @@ const rateMovie = async (identifier, userId, rating) => {
     { rating: value },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   );
+  await invalidateForYou(userId);
 
   const agg = await Rating.aggregate([
     { $match: { movieId: movieDoc._id } },
@@ -2203,7 +2204,19 @@ const getRecommendationsFallback = async (
  * @param {number} limit - Number of recommendations (default: 20)
  * @returns {Object} { data: Array }
  */
-const getForYou = async (userId, limit = 20) => {
+const buildForYou = async (userId, limit = 20) => {
+  // Filled once the library loads, so the error fallback still drops seen/disliked titles
+  let excluded = new Set();
+  // Trending + top rated, tagged with a reason, minus seen/disliked titles
+  const popular = async (n) => {
+    const [trending, topRated] = await Promise.all([getTrending(Math.ceil(n / 2)), getTopRated(Math.ceil(n / 2))]);
+    const tagged = [
+      ...trending.data.map((m) => ({ ...m, reason: 'Đang thịnh hành' })),
+      ...topRated.data.map((m) => ({ ...m, reason: 'Được đánh giá cao' })),
+    ].filter((m) => !excluded.has(String(m.id)));
+    return Array.from(new Map(tagged.map((m) => [m.id, m])).values());
+  };
+
   try {
     const UserHistory = require('../models/user_history.model');
     const UserFavorite = require('../models/user_favorite.model');
@@ -2228,17 +2241,7 @@ const getForYou = async (userId, limit = 20) => {
       watchlist,
       disliked: user?.dislikedMovieIds,
     });
-    const excluded = new Set(excludeIds.map(String));
-
-    // Trending + top rated, tagged with a reason, minus seen/disliked titles
-    const popular = async (n) => {
-      const [trending, topRated] = await Promise.all([getTrending(Math.ceil(n / 2)), getTopRated(Math.ceil(n / 2))]);
-      const tagged = [
-        ...trending.data.map((m) => ({ ...m, reason: 'Đang thịnh hành' })),
-        ...topRated.data.map((m) => ({ ...m, reason: 'Được đánh giá cao' })),
-      ].filter((m) => !excluded.has(String(m.id)));
-      return Array.from(new Map(tagged.map((m) => [m.id, m])).values());
-    };
+    excluded = new Set(excludeIds.map(String));
 
     if (!signals.some((s) => s.weight > 0)) {
       // No positive signal yet: trending + top rated
@@ -2319,6 +2322,7 @@ const getForYou = async (userId, limit = 20) => {
       {
         $match: {
           _id: { $nin: excludeIds },
+          isHidden: { $ne: true },
         },
       },
       // Lấy Score
@@ -2416,25 +2420,38 @@ const getForYou = async (userId, limit = 20) => {
     };
   } catch (error) {
     console.error('Get For You Error:', error);
-    // Fallback về trending + top rated
+    // Fallback về trending + top rated (not cached, so the next call retries)
     try {
-      const [trending, topRated] = await Promise.all([
-        getTrending(Math.ceil(limit / 2)),
-        getTopRated(Math.ceil(limit / 2)),
-      ]);
-
-      const combined = [...trending.data, ...topRated.data];
-      const uniqueMovies = Array.from(new Map(combined.map((m) => [m.id, m])).values());
-
-      return {
-        data: uniqueMovies.slice(0, limit),
-      };
+      return { data: (await popular(limit)).slice(0, limit), fallback: true };
     } catch (fallbackError) {
       console.error('Get For You Fallback Error:', fallbackError);
       return { data: [] };
     }
   }
 };
+
+const FOR_YOU_TTL_SECONDS = 300;
+// Callers ask for 20 (default), 24 (chat), 30 and 100 (homepage); one cache key per size
+const FOR_YOU_SIZES = [20, 30, 50, 100];
+const forYouCacheKey = (userId, size) => `movies:foryou:${userId}:${size}`;
+
+// ponytail: history changes are not invalidated and ride the TTL. A taste write that lands
+// mid-build can be overwritten by pre-write rows for up to the TTL; a per-user version token fixes that.
+const getForYou = async (userId, limit = 20) => {
+  const size = FOR_YOU_SIZES.find((s) => s >= limit) || FOR_YOU_SIZES[FOR_YOU_SIZES.length - 1];
+  const key = forYouCacheKey(userId, size);
+  const cached = await redisService.get(key);
+  if (cached) return { data: cached.slice(0, limit) };
+
+  const result = await buildForYou(userId, size);
+  if (result.data.length && !result.fallback) {
+    await redisService.set(key, result.data, FOR_YOU_TTL_SECONDS);
+  }
+  return { ...result, data: result.data.slice(0, limit) };
+};
+
+// Call after a taste write (rating, favorite, watchlist, "not for me")
+const invalidateForYou = (userId) => redisService.del(FOR_YOU_SIZES.map((s) => forYouCacheKey(userId, s)));
 
 module.exports = {
   getAll,
@@ -2461,4 +2478,5 @@ module.exports = {
   deleteComment,
   getRecommendations,
   getForYou,
+  invalidateForYou,
 };

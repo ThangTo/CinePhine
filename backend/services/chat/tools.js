@@ -297,6 +297,7 @@ const handlers = {
     let alreadyInList = false;
     try {
       await models.UserWatchlist.create({ userId, movieId: card.id });
+      await movieService.invalidateForYou?.(userId);
       // Same side effect as POST /users/watchlist.
       questService?.checkAndUpdateProgress(userId, { type: 'watchlist', movieId: card.id }).catch(() => {});
     } catch (error) {
