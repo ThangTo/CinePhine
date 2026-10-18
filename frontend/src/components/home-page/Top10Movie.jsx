@@ -5,9 +5,10 @@ import Top10Card from "components/top-movie/Top10Card";
 import movieService from "services/movie.service";
 import { BarSpinner } from "components/common/LoadingState";
 import { preloadMovieImages } from "utils/imagePreloader";
+import { groupSeriesMovies } from "utils/seriesGrouping";
 
 /**
- * Top 10 Movies Section
+ * Top 10 Movies Section - most watched right now (server trending, filtered by type)
  * Always displays in horizontal scroll layout for all screen sizes
  * @param {string} title - Section title
  * @param {string} linkHref - Link href
@@ -21,21 +22,11 @@ const Top10Movie = ({ title, linkHref, type = null }) => {
     const fetchTop10 = async () => {
       try {
         setLoading(true);
-        // Fetch more movies to ensure we have enough after filtering
-        const response = await movieService.getTopRated(100);
-        let moviesData = response.data || [];
-
-        // Filter by type if specified
-        if (type === "single") {
-          // Phim lẻ: totalEpisodes = 1
-          moviesData = moviesData.filter((movie) => movie.totalEpisodes === 1);
-        } else if (type === "series") {
-          // Phim bộ: totalEpisodes > 1
-          moviesData = moviesData.filter((movie) => movie.totalEpisodes > 1);
-        }
-
-        // Limit to top 10 after filtering
-        moviesData = moviesData.slice(0, 10);
+        // Over-fetch so seasons of one show can collapse into a single slot
+        const response = await movieService.getTrending(30, { type: type || undefined });
+        // totalEpisodes is 0 when no episode is playable right now
+        const playable = (response.data || []).filter((movie) => movie.totalEpisodes > 0);
+        const moviesData = groupSeriesMovies(playable).slice(0, 10);
         setMovies(moviesData);
 
         // Preload all top 10 images immediately (they're always visible)

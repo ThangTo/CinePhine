@@ -62,16 +62,16 @@ const HomePage = () => {
 
         
 
-        {/* Top 10 Phim Bộ Hôm Nay */}
+        {/* Top 10 Phim Bộ Tuần Này */}
         <LazySection rootMargin="200px">
-          <Top10Movie title="Top 10 Phim Bộ Hôm Nay" linkHref="/top10" type="series" />
+          <Top10Movie title="Top 10 Phim Bộ Tuần Này" linkHref="/top10" type="series" />
         </LazySection>
 
         {/* Another Trending Section */}
         <LazySection rootMargin="200px">
           <SectionRow
             title="Mãn Nhãn Với Phim Chiếu Rạp"
-            sectionType="trending"
+            sectionType="topRated"
             typeMovies="single"
             linkHref="/cinema"
           />
@@ -81,9 +81,9 @@ const HomePage = () => {
           <SectionRow title="Gia Đình Là Số 1" linkHref="/family" genre="Gia Đình" />
         </LazySection>
 
-        {/* Top 10 Phim Lẻ Hôm Nay */}
+        {/* Top 10 Phim Lẻ Tuần Này */}
         <LazySection rootMargin="200px">
-          <Top10Movie title="Top 10 Phim Lẻ Hôm Nay" linkHref="/top10" type="single" />
+          <Top10Movie title="Top 10 Phim Lẻ Tuần Này" linkHref="/top10" type="single" />
         </LazySection>
       </div>
 

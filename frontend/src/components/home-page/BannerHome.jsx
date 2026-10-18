@@ -70,7 +70,7 @@ const BannerHome = ({ movie }) => {
       const fetchBannerMovies = async () => {
         try {
           setLoading(true);
-          const response = await movieService.getTrending(6);
+          const response = await movieService.getTrending(6, { featured: true });
           const list = response?.data || [];
           const moviesData = Array.isArray(list) ? list.slice(0, 6) : [];
 

@@ -16,25 +16,31 @@ const movieService = {
   getById: (id) => apiRequest(`/movies/${id}`),
 
   /**
-   * Lấy trending movies
-   * @param {number} limit - Số lượng movies (default: 10)
+   * Lấy trending movies (lượt xem gần đây)
+   * @param {number} limit - Số lượng movies (default: 10, max: 50)
+   * @param {Object} params - { type?: 'single'|'series', featured?: boolean }
    * @returns {Promise<Object>} { data: [] }
    */
-  getTrending: (limit = 10) => apiRequest("/movies/trending/now", { params: { limit } }),
+  getTrending: (limit = 10, params = {}) =>
+    apiRequest("/movies/trending/now", { params: { limit, ...params } }),
 
   /**
    * Lấy top rated movies
-   * @param {number} limit - Số lượng movies (default: 10)
+   * @param {number} limit - Số lượng movies (default: 10, max: 50)
+   * @param {Object} params - { type?: 'single'|'series' }
    * @returns {Promise<Object>} { data: [] }
    */
-  getTopRated: (limit = 10) => apiRequest("/movies/top/rated", { params: { limit } }),
+  getTopRated: (limit = 10, params = {}) =>
+    apiRequest("/movies/top/rated", { params: { limit, ...params } }),
 
   /**
    * Lấy new releases
-   * @param {number} limit - Số lượng movies (default: 10)
+   * @param {number} limit - Số lượng movies (default: 10, max: 50)
+   * @param {Object} params - { type?: 'single'|'series' }
    * @returns {Promise<Object>} { data: [] }
    */
-  getNewReleases: (limit = 10) => apiRequest("/movies/new/releases", { params: { limit } }),
+  getNewReleases: (limit = 10, params = {}) =>
+    apiRequest("/movies/new/releases", { params: { limit, ...params } }),
 
   /**
    * Lấy personalized recommendations based on user's watch history

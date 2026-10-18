@@ -16,7 +16,7 @@ import EmptyState from "components/common/EmptyState";
  * @param {string} props.title - Section title
  * @param {string} props.subtitle - Section subtitle (optional)
  * @param {Array} props.movies - Array of movie objects (optional, fetches from API if not provided)
- * @param {string} props.sectionType - Type of section: 'trending' | 'newReleases' | 'forYou'
+ * @param {string} props.sectionType - Type of section: 'trending' | 'topRated' | 'newReleases' | 'forYou'
  * @param {string} props.linkHref - Optional "View all" link
  * @param {'single'|'series'|null} typeMovies - Filter by movie type: 'single' for phim lẻ, 'series' for phim bộ
  * @param {string|null} genre - Filter by genre name (e.g., 'Hành Động', 'Tình Cảm')
@@ -85,10 +85,9 @@ const SectionRow = ({
         setError(false);
       }
       let response;
-      // Fetch more movies to ensure we have enough after filtering
-      // Increase limit if we have multiple filters
-      const hasFilters = typeMovies || normalizedGenre;
-      const fetchLimit = hasFilters ? 100 : 30;
+      // Ranked lists filter by type on the server; genre rows still filter client-side
+      const fetchLimit = normalizedGenre ? 100 : 30;
+      const typeParams = { type: typeMovies || undefined };
 
       // If genre is specified, use getByGenre API for better performance
       if (normalizedGenre) {
@@ -96,10 +95,13 @@ const SectionRow = ({
       } else {
         switch (sectionType) {
           case "trending":
-            response = await movieService.getTrending(fetchLimit);
+            response = await movieService.getTrending(fetchLimit, typeParams);
+            break;
+          case "topRated":
+            response = await movieService.getTopRated(fetchLimit, typeParams);
             break;
           case "newReleases":
-            response = await movieService.getNewReleases(fetchLimit);
+            response = await movieService.getNewReleases(fetchLimit, typeParams);
             break;
           case "forYou":
             response = await movieService.getForYou(fetchLimit);

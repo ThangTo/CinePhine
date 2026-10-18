@@ -654,14 +654,51 @@ const getById = async (identifier, options = {}) => {
   return movie;
 };
 
+const TRENDING_WINDOW_DAYS = 30;
+const TRENDING_HALF_LIFE_HOURS = 168;
+// Shorter views are clicks or trailer peeks, not watching
+const TRENDING_MIN_WATCH_SEC = 120;
+// Quiet weeks: a fresh episode of a known show counts as up to 1 viewer, an external trend up to 0.5
+const TRENDING_PRIOR_WEIGHT = 1;
+const FRESH_WINDOW_DAYS = 14;
+const FRESH_HALF_LIFE_DAYS = 3;
+const NEW_RELEASES_WINDOW_DAYS = 30;
+// ponytail: candidates are cut before the type filter; a thin type tops up from viewCount
+const TRENDING_CANDIDATES = 200;
+const TOP_RATED_MIN_VOTES = 50;
+// Bayesian prior: m votes at mean C (TMDB mean of titles with >= 50 votes, measured 2026-10)
+const TOP_RATED_PRIOR_VOTES = 300;
+const TOP_RATED_PRIOR_MEAN = 7.2;
+
+// Load movies by id, keeping the given order; hidden or filtered-out ids drop out
+const findInOrder = async (ids, match = {}, projection = null) => {
+  const docs = await Movie.find({ _id: { $in: ids }, isHidden: { $ne: true }, ...match }, projection).lean();
+  const byId = new Map(docs.map((d) => [String(d._id), d]));
+  return ids.map((id) => byId.get(String(id))).filter(Boolean);
+};
+
+// Movies with episodes added in the last `days`, newest first. Episode _ids carry their
+// insert time (the crawler upserts, never re-inserts), so this rides the _id index.
+const latestEpisodes = (days) => {
+  const since = mongoose.Types.ObjectId.createFromTime(Math.floor((Date.now() - days * 864e5) / 1000));
+  return Episode.aggregate([
+    { $match: { _id: { $gte: since } } },
+    { $group: { _id: '$movieId', at: { $max: '$_id' } } },
+    { $sort: { at: -1 } },
+  ]);
+};
+
 /**
- * Get trending movies by view count
- * Featured movies (isFeatured: true) are prioritized first, then sorted by viewCount
+ * Get trending movies: unique viewers who watched >= 2 min in the last 30 days,
+ * each decayed by a 7-day half-life, plus a prior worth up to 1 viewer (fresh
+ * episode of a known show, or half the external TrendingMovie score) so quiet weeks
+ * still rank; topped up with all-time viewCount when everything is thin.
+ * featured=true (banner) pins admin-featured movies first and fetches logos.
+ * type: 'single' | 'series' (same totalEpisodes rule as the catalogue filters)
  * Cached for 10 minutes
- * Automatically fetches logos for movies without them (if they have TMDB ID)
  */
-const getTrending = async (limit = 10) => {
-  const cacheKey = `movies:trending:${limit}`;
+const getTrending = async (limit = 10, { type, featured = false } = {}) => {
+  const cacheKey = `movies:trending:${type || 'all'}:${featured ? 'featured' : 'plain'}:${limit}`;
 
   // Try cache first
   if (redisService.isConnected) {
@@ -672,32 +709,82 @@ const getTrending = async (limit = 10) => {
   }
 
   // Cache miss - fetch from DB
-  // Step 1: Get featured movies first (admin-pinned to banner)
-  const featuredMovies = await Movie.find({ isFeatured: true, isHidden: { $ne: true } })
-    .sort({ viewCount: -1 })
-    .limit(limit)
-    .lean();
+  const ViewHistory = require('../models/view_history.model');
+  const TrendingMovie = require('../models/trending_movie.model');
+  const match = { isHidden: { $ne: true }, ...buildQuery({ type }) };
+  const pinned = featured
+    ? await Movie.find({ ...match, isFeatured: true }).sort({ viewCount: -1 }).limit(limit).lean()
+    : [];
 
-  // Step 2: Fill remaining slots with non-featured movies sorted by viewCount
-  const remaining = limit - featuredMovies.length;
-  let regularMovies = [];
-  if (remaining > 0) {
-    const featuredIds = featuredMovies.map((m) => m._id);
-    regularMovies = await Movie.find({
-      _id: { $nin: featuredIds },
-      isHidden: { $ne: true },
-    })
+  const now = new Date();
+  const windowed = await ViewHistory.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: new Date(now - TRENDING_WINDOW_DAYS * 864e5) },
+        watchDuration: { $gte: TRENDING_MIN_WATCH_SEC },
+      },
+    },
+    // One vote per viewer, dated by their latest view, so replays cannot pump a title
+    {
+      $group: {
+        _id: { movie: '$movieId', viewer: { $ifNull: ['$userId', '$ipAddress'] } },
+        lastAt: { $max: '$createdAt' },
+      },
+    },
+    {
+      $group: {
+        _id: '$_id.movie',
+        score: {
+          $sum: {
+            $pow: [0.5, { $divide: [{ $subtract: [now, '$lastAt'] }, TRENDING_HALF_LIFE_HOURS * 36e5] }],
+          },
+        },
+      },
+    },
+    { $sort: { score: -1 } },
+    { $limit: TRENDING_CANDIDATES },
+  ]);
+
+  const [fresh, external] = await Promise.all([
+    latestEpisodes(FRESH_WINDOW_DAYS),
+    TrendingMovie.find({}, { movieId: 1, trend_score: 1 }).lean(),
+  ]);
+  const views = new Map(windowed.map((r) => [String(r._id), r.score]));
+  const freshAt = new Map(fresh.map((r) => [String(r._id), r.at.getTimestamp()]));
+  // Half weight: the home carousel already shows the external list, the rows should not copy it
+  const trend = new Map(external.map((t) => [String(t.movieId), t.trend_score / 20]));
+  const minYear = now.getFullYear() - 1;
+  // 0..1: the external trend, or episode freshness x TMDB popularity (1000 votes saturates).
+  // The year floor keeps backfilled old shows from looking fresh.
+  const prior = (m) => {
+    const at = freshAt.get(String(m._id));
+    const freshness = at && m.year >= minYear ? Math.pow(0.5, (now - at) / (FRESH_HALF_LIFE_DAYS * 864e5)) : 0;
+    const popularity = Math.min(1, Math.log10(1 + (m.tmdb?.vote_count || 0)) / 3);
+    return Math.max(trend.get(String(m._id)) || 0, freshness * popularity);
+  };
+  const ids = [...new Set([...views.keys(), ...freshAt.keys(), ...trend.keys()])];
+  const candidates = await findInOrder(ids, match, { year: 1, 'tmdb.vote_count': 1 });
+  const ranked = candidates
+    .map((m) => ({ id: m._id, score: (views.get(String(m._id)) || 0) + TRENDING_PRIOR_WEIGHT * prior(m) }))
+    .filter((r) => r.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const pinnedIds = new Set(pinned.map((m) => String(m._id)));
+  const recent = await findInOrder(ranked.slice(0, limit + pinned.length).map((r) => r.id), match);
+  let data = [...pinned, ...recent.filter((m) => !pinnedIds.has(String(m._id)))].slice(0, limit);
+  if (data.length < limit) {
+    const fill = await Movie.find({ ...match, _id: { $nin: data.map((m) => m._id) } })
       .sort({ viewCount: -1 })
-      .limit(remaining)
+      .limit(limit - data.length)
       .lean();
+    data = [...data, ...fill];
   }
-
-  const data = [...featuredMovies, ...regularMovies];
   const validatedData = await attachEpisodeValidation(data);
 
-  // Auto-fetch logos for movies without them (if they have TMDB ID)
+  // Auto-fetch logos for movies without them (if they have TMDB ID).
+  // Only the banner renders logos, so plain lists skip the TMDB calls and DB writes.
   const tmdbService = require('../integrations/tmdb.service');
-  await runWithConcurrency(validatedData, LOGO_FETCH_CONCURRENCY, async (movie) => {
+  await runWithConcurrency(featured ? validatedData : [], LOGO_FETCH_CONCURRENCY, async (movie) => {
     // Skip if movie already has logo or doesn't have TMDB ID
     if (movie.images?.logo || !movie.tmdb?.id) {
       return;
@@ -733,11 +820,13 @@ const getTrending = async (limit = 10) => {
 };
 
 /**
- * Get top rated movies
+ * Get top rated movies by Bayesian weighted rating over site + TMDB votes,
+ * one entry per show (TMDB scores every season of a show the same).
+ * type: 'single' | 'series'
  * Cached for 10 minutes
  */
-const getTopRated = async (limit = 10) => {
-  const cacheKey = `movies:top-rated:${limit}`;
+const getTopRated = async (limit = 10, { type } = {}) => {
+  const cacheKey = `movies:top-rated:${type || 'all'}:${limit}`;
 
   // Try cache first
   if (redisService.isConnected) {
@@ -748,7 +837,43 @@ const getTopRated = async (limit = 10) => {
   }
 
   // Cache miss - fetch from DB
-  const data = await Movie.find({ isHidden: { $ne: true } }).sort({ rating: -1, totalRatings: -1 }).limit(limit).lean();
+  const num = (field) => ({ $ifNull: [field, 0] });
+  const ranked = await Movie.aggregate([
+    { $match: { isHidden: { $ne: true }, ...buildQuery({ type }) } },
+    // Site ratings and TMDB votes share the 0-10 scale, so pool them
+    {
+      $project: {
+        year: 1,
+        season: '$tmdb.season',
+        show: { t: '$tmdb.type', i: { $ifNull: ['$tmdb.id', '$_id'] } },
+        votes: { $add: [num('$totalRatings'), num('$tmdb.vote_count')] },
+        points: {
+          $add: [
+            { $multiply: [num('$rating'), num('$totalRatings')] },
+            { $multiply: [num('$tmdb.vote_average'), num('$tmdb.vote_count')] },
+          ],
+        },
+      },
+    },
+    { $match: { votes: { $gte: TOP_RATED_MIN_VOTES } } },
+    // WR = (points + m*C) / (votes + m)
+    {
+      $addFields: {
+        wr: {
+          $divide: [
+            { $add: ['$points', TOP_RATED_PRIOR_VOTES * TOP_RATED_PRIOR_MEAN] },
+            { $add: ['$votes', TOP_RATED_PRIOR_VOTES] },
+          ],
+        },
+      },
+    },
+    // One entry per show: ranked by its best season, represented by its earliest season
+    { $sort: { season: 1, year: 1, _id: 1 } },
+    { $group: { _id: '$show', movieId: { $first: '$_id' }, wr: { $max: '$wr' } } },
+    { $sort: { wr: -1, movieId: 1 } },
+    { $limit: limit },
+  ]);
+  const data = await findInOrder(ranked.map((r) => r.movieId));
   const validatedData = await attachEpisodeValidation(data);
   const result = {
     data: transformMovies(validatedData),
@@ -763,11 +888,14 @@ const getTopRated = async (limit = 10) => {
 };
 
 /**
- * Get newest movies
+ * Get newest movies: titles from this or last year, ordered by their latest episode
+ * added (a show airing a new episode moves up), then by when the title was added.
+ * The year floor keeps old catalogue backfills (crawled today, released 2016) out.
+ * type: 'single' | 'series'
  * Cached for 5 minutes
  */
-const getNewReleases = async (limit = 10) => {
-  const cacheKey = `movies:new-releases:${limit}`;
+const getNewReleases = async (limit = 10, { type } = {}) => {
+  const cacheKey = `movies:new-releases:${type || 'all'}:${limit}`;
 
   // Try cache first
   if (redisService.isConnected) {
@@ -778,7 +906,17 @@ const getNewReleases = async (limit = 10) => {
   }
 
   // Cache miss - fetch from DB
-  const data = await Movie.find().sort({ createdAt: -1 }).limit(limit).lean();
+  const match = { year: { $gte: new Date().getFullYear() - 1 }, ...buildQuery({ type }) };
+  const latest = await latestEpisodes(NEW_RELEASES_WINDOW_DAYS);
+  const updated = await findInOrder(latest.map((r) => r._id), match, { _id: 1 });
+  let data = await findInOrder(updated.slice(0, limit).map((m) => m._id));
+  if (data.length < limit) {
+    const fill = await Movie.find({ isHidden: { $ne: true }, ...match, _id: { $nin: data.map((m) => m._id) } })
+      .sort({ createdAt: -1 })
+      .limit(limit - data.length)
+      .lean();
+    data = [...data, ...fill];
+  }
   const validatedData = await attachEpisodeValidation(data);
   const result = {
     data: transformMovies(validatedData),

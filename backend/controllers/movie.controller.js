@@ -306,15 +306,25 @@ const getById = async (req, res) => {
   }
 };
 
+// Public ranked lists: bounded limit (it is also part of the cache key), whitelisted type
+const LIST_MAX_LIMIT = 50;
+const parseListQuery = (query) => ({
+  limit: Math.min(LIST_MAX_LIMIT, Math.max(1, Math.floor(Number(query.limit)) || 10)),
+  type: ['single', 'series'].includes(query.type) ? query.type : undefined,
+});
+
 /**
  * GET /movies/trending/now
- * Get trending movies ordered by view count
- * @param {number} req.query.limit - Limit number of results (default: 10)
+ * Get trending movies (recent unique viewers, decayed)
+ * @param {number} req.query.limit - Limit number of results (default: 10, max: 50)
+ * @param {string} req.query.type - Optional 'single' | 'series'
+ * @param {string} req.query.featured - 'true' pins featured movies first (banner)
  * @returns {Object} { data: Array }
  */
 const getTrending = async (req, res) => {
   try {
-    const result = await movieService.getTrending(Number(req.query.limit) || 10);
+    const { limit, type } = parseListQuery(req.query);
+    const result = await movieService.getTrending(limit, { type, featured: req.query.featured === 'true' });
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -329,7 +339,8 @@ const getTrending = async (req, res) => {
  */
 const getTopRated = async (req, res) => {
   try {
-    const result = await movieService.getTopRated(Number(req.query.limit) || 10);
+    const { limit, type } = parseListQuery(req.query);
+    const result = await movieService.getTopRated(limit, { type });
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -344,7 +355,8 @@ const getTopRated = async (req, res) => {
  */
 const getNewReleases = async (req, res) => {
   try {
-    const result = await movieService.getNewReleases(Number(req.query.limit) || 10);
+    const { limit, type } = parseListQuery(req.query);
+    const result = await movieService.getNewReleases(limit, { type });
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
