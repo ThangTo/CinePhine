@@ -384,6 +384,18 @@ const buildQuery = (filters = {}, useTextSearch = true) => {
     query._audioTypeFilter = filters.lang;
   }
 
+  // Cast/crew: any of the given spellings of one person. Tokens may be split by a space
+  // or a hyphen, so "Song Kang Ho" also matches "Song Kang-ho".
+  // ponytail: unindexed regex scan (~16k docs); move to an Atlas phrase query if the catalog grows
+  if (Array.isArray(filters.people) && filters.people.length > 0) {
+    const escape = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const patterns = filters.people.map((name) => {
+      const tokens = name.split(/[\s-]+/).filter(Boolean).map(escape);
+      return new RegExp(`(^|[\\s-])${tokens.join('[\\s-]*')}($|[\\s-])`, 'i');
+    });
+    query.$and = [{ $or: [{ actor: { $in: patterns } }, { director: { $in: patterns } }] }];
+  }
+
   if (filters.q) {
     const searchQuery = filters.q.trim();
     if (searchQuery) {

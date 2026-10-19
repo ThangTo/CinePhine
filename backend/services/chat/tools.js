@@ -4,6 +4,7 @@
 
 const MAX_RESULTS = 6;
 const POOL_SIZE = 40; // discovery over-fetch: runtime and already-seen filters run after the query
+const PERSON_POOL = 100; // a person's whole filmography, ranked by popularity afterwards
 const MAX_WATCHED = 300;
 const MAX_MEMORY = 20;
 const MAX_REPLIES = 4;
@@ -28,9 +29,13 @@ const movieRef = {
 const TOOLS = [
   fn(
     'search_movies',
-    'Tìm phim theo tên/từ khóa, hoặc lọc để gợi ý (bỏ trống query): thể loại, quốc gia, loại phim, năm, thời lượng, độ tuổi, điểm. Khi lọc, phim người dùng đã xem hoặc đã được gợi ý trong cuộc trò chuyện tự bị loại.',
+    'Tìm phim theo tên/từ khóa, theo diễn viên/đạo diễn (person), hoặc lọc để gợi ý (bỏ trống query): thể loại, quốc gia, loại phim, năm, thời lượng, độ tuổi, điểm. Khi lọc, phim người dùng đã xem hoặc đã được gợi ý trong cuộc trò chuyện tự bị loại.',
     {
-      query: { type: 'string', description: 'Tên phim hoặc từ khóa; bỏ trống nếu chỉ lọc/gợi ý' },
+      query: { type: 'string', description: 'Tên phim hoặc từ khóa (tên người thì dùng person); bỏ trống nếu chỉ lọc/gợi ý' },
+      person: {
+        type: 'string',
+        description: 'Diễn viên hoặc đạo diễn. Ghi kèm tên quốc tế/cách viết khác của CÙNG người đó, cách nhau dấu phẩy, vd "Thành Long, Jackie Chan"',
+      },
       genre: { type: 'string', description: 'Một hoặc nhiều thể loại cách nhau dấu phẩy (phim phải có đủ), vd "hành động, hài hước"' },
       country: { type: 'string', description: 'Quốc gia, vd "Hàn Quốc", "Nhật Bản"' },
       type: {
@@ -185,6 +190,9 @@ async function searchFilters(args, movieService) {
     if (slug) filters.country = slug;
     else unknownFilters.push(args.country);
   }
+  // Spellings of one person; 2+ letters keeps a stray "-" from matching every cast list.
+  const people = String(args.person || '').split(',').map((s) => s.trim().slice(0, 60)).filter((s) => /\p{L}{2}/u.test(s));
+  if (people.length) filters.people = people.slice(0, 4);
   if (args.type) filters.type = args.type;
   if (parseInt(args.year, 10)) filters.year = parseInt(args.year, 10);
   const maxAge = parseInt(args.max_age, 10);
@@ -217,13 +225,13 @@ const handlers = {
     const { filters, unknownFilters } = await searchFilters(args, deps.movieService);
     const extra = unknownFilters.length ? { unknownFilters } : {};
     // Keyword search: the user asked for a specific title, return it even if already watched.
-    if (args.query) {
+    if (args.query && !filters.people) {
       // Over-fetch: search/getAll do not drop hidden movies, toMovieCard does.
       const { data = [] } = await deps.movieService.search(args.query, { ...filters, limit: MAX_RESULTS * 2 });
       return moviesResult(data, extra, { count: countOf(args) });
     }
     const [{ data = [] }, { skip, block }] = await Promise.all([
-      deps.movieService.search('', { ...filters, limit: POOL_SIZE }),
+      deps.movieService.search('', { ...filters, limit: filters.people ? PERSON_POOL : POOL_SIZE }),
       seenIds(userId, deps, shownIds),
     ]);
     const maxMinutes = parseInt(args.max_minutes, 10);
@@ -231,6 +239,8 @@ const handlers = {
     // Unknown runtime ("N/A") counts as too long: the user set a time budget.
     if (maxMinutes > 0) list = list.filter((m) => (minutesOf(m.duration || m.time) || Infinity) <= maxMinutes);
     if (args.sort === 'top_rated') list = [...list].sort((a, b) => (b.tmdb?.vote_average || 0) - (a.tmdb?.vote_average || 0));
+    // A person's films: best known first instead of newest first
+    else if (filters.people && !args.sort) list = [...list].sort((a, b) => (b.tmdb?.vote_count || 0) - (a.tmdb?.vote_count || 0));
     return { ...moviesResult(list, extra, { skip, block, count: countOf(args) }), nextSteps: NEXT_STEPS };
   },
 

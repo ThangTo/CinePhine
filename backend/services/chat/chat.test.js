@@ -252,6 +252,21 @@ test('discovery: maps runtime/age/score/multi-genre, skips seen movies, falls ba
   assert.match(stale.result.note, /đã xem hoặc đã được gợi ý/);
 });
 
+test('search_movies by person: filters cast/crew instead of title search, best known first', async () => {
+  const calls = {};
+  const movieService = {
+    ...fakeMovieService(calls),
+    search: async (q, opts) => {
+      calls.search = { q, opts };
+      return { data: [movie('new', { tmdb: { vote_count: 50 } }), movie('hit', { tmdb: { vote_count: 9000 } })] };
+    },
+  };
+  const deps = { movieService, models: userModels() };
+  const out = await executeTool('search_movies', { query: 'Thành Long', person: 'Thành Long, Jackie Chan, -' }, { deps });
+  assert.deepEqual(calls.search, { q: '', opts: { people: ['Thành Long', 'Jackie Chan'], limit: 100 } });
+  assert.deepEqual(out.movies.map((m) => m.id), ['hit', 'new']);
+});
+
 test('suggest_replies emits a suggestions event; shown movie ids persist on the session', async () => {
   const session = { messages: [], shownMovieIds: ['old'], addMessage: async () => {} };
   const events = [];
