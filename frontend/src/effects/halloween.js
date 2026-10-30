@@ -53,25 +53,41 @@ const fill = (g, color, draw) => {
   g.fill();
 };
 
+// Glow sprites cached per color: one drawImage instead of shadowBlur (a blur pass per fill, x600 particles).
+const GLOW_PX = 64;
+const glows = new Map();
+const drawGlow = (g, color, x, y, r) => {
+  if (!glows.has(color)) {
+    const sprite = document.createElement("canvas");
+    sprite.width = sprite.height = GLOW_PX;
+    const sg = sprite.getContext("2d");
+    const grad = sg.createRadialGradient(GLOW_PX / 2, GLOW_PX / 2, 0, GLOW_PX / 2, GLOW_PX / 2, GLOW_PX / 2);
+    grad.addColorStop(0.22, color);
+    grad.addColorStop(0.4, `${color}55`);
+    grad.addColorStop(1, `${color}00`);
+    sg.fillStyle = grad;
+    sg.fillRect(0, 0, GLOW_PX, GLOW_PX);
+    glows.set(color, sprite);
+  }
+  g.drawImage(glows.get(color), x - r, y - r, r * 2, r * 2);
+};
+
+// Solid core (~size) + halo in one sprite.
 const drawEmber = (g, p, prog, age) => {
   g.globalAlpha = (1 - prog) * (0.6 + 0.4 * Math.sin(p.flicker + age / 60));
-  g.shadowBlur = p.size * 6;
-  g.shadowColor = p.color;
-  fill(g, p.color, () => g.arc(p.x, p.y, p.size, 0, TAU));
+  drawGlow(g, p.color, p.x, p.y, p.size * 4);
 };
 
 const drawPumpkin = (g, p) => {
   const r = p.size;
   g.translate(p.x, p.y);
   g.rotate(p.angle);
-  g.shadowBlur = r * 1.6;
-  g.shadowColor = "#ff7a1a";
+  drawGlow(g, "#ff7a1a", 0, 0, r * 2.2);
   fill(g, "#e9661a", () => {
     g.ellipse(-r * 0.45, 0, r * 0.6, r * 0.8, 0, 0, TAU);
     g.ellipse(r * 0.45, 0, r * 0.6, r * 0.8, 0, 0, TAU);
   });
   fill(g, "#ff8a2a", () => g.ellipse(0, 0, r * 0.62, r * 0.86, 0, 0, TAU));
-  g.shadowBlur = 0;
   g.strokeStyle = "#6b8f3a";
   g.lineWidth = r * 0.22;
   g.lineCap = "round";
@@ -107,8 +123,7 @@ const drawBat = (g, p, age) => {
   const k = p.size / 12;
   g.translate(p.x, p.y);
   g.scale(k, k);
-  g.shadowBlur = 8;
-  g.shadowColor = "#8f6bd6";
+  drawGlow(g, "#8f6bd6", 0, -1, 16);
   g.save();
   g.scale(1, 0.4 + 0.6 * Math.abs(Math.sin(age / 70)));
   fill(g, "#8f6bd6", () => {
@@ -125,7 +140,6 @@ const drawBat = (g, p, age) => {
     g.lineTo(1.5, -5);
     g.lineTo(0.4, -3);
   });
-  g.shadowBlur = 0;
   fill(g, "#ffe08a", () => {
     g.arc(-0.9, -0.3, 0.6, 0, TAU);
     g.moveTo(1.5, -0.3);
@@ -161,6 +175,7 @@ export const HalloweenEffectFactory = (ctx) => {
   const { canvas, mouseRef, needsEmitRef } = ctx;
   const s = ctx.scale || 1;
   let travel = 0;
+  let painted = false;
 
   const emit = (now) => {
     const m = mouseRef.current;
@@ -194,6 +209,10 @@ export const HalloweenEffectFactory = (ctx) => {
       needsEmitRef.current = false;
       emit(now);
     }
+    // Idle: leave the blank canvas untouched (any draw call re-uploads the full-viewport layer).
+    // ponytail: the shared rAF loop keeps ticking as a no-op; add stop/resume to registerAnimation if that ever shows up.
+    if (!particles.length && !painted) return;
+    painted = particles.length > 0;
 
     // Crisp shapes: clear instead of the fade-fill trail used by other effects
     g.clearRect(0, 0, canvas.width, canvas.height);

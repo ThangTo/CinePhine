@@ -12,8 +12,9 @@ export function followPointer(getElements, onDistance) {
   let point = null;
   const update = () => {
     frame = null;
-    for (const element of getElements()) {
-      const rect = element?.getBoundingClientRect();
+    // Read every rect before the first write: interleaving forces a layout per element.
+    const measured = getElements().map((element) => [element, element?.getBoundingClientRect()]);
+    for (const [element, rect] of measured) {
       if (!rect?.width) continue;
       const dx = point.x - rect.left - rect.width / 2;
       const dy = point.y - rect.top - rect.height / 2;

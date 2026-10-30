@@ -35,7 +35,7 @@ function Cobweb({ side }) {
     <svg className={`halloween-web halloween-web--${side}`} viewBox="-2 -2 212 212" fill="none">
       <path d={WEB_PATH} stroke="#e8def5" strokeOpacity=".3" />
       {WEB_DEW.map(([x, y], i) => (
-        <circle key={i} className="halloween-web-dew" cx={x} cy={y} r="1.8" fill="#ffb46b" style={{ animationDelay: `${-i * 1.2}s` }} />
+        <circle key={i} cx={x} cy={y} r="1.8" fill="#ffb46b" />
       ))}
     </svg>
   );
@@ -307,7 +307,7 @@ function GhostFollower() {
   return (
     <div ref={ref} className="halloween-ghost">
       <svg className="halloween-ghost-svg" viewBox="-50 -34 100 96" fill="none">
-        <g className="halloween-ghost-bob"><Ghost mood={mood} /></g>
+        <Ghost mood={mood} />
       </svg>
       {mood === "boo" && <span className="halloween-ghost-bubble">Boo!</span>}
     </div>
@@ -324,7 +324,7 @@ function Pumpkins() {
         <radialGradient id={`${id}-candle`} cx=".5" cy=".4" r=".7"><stop stopColor="#fff4c2" /><stop offset="1" stopColor="#ffab3d" /></radialGradient>
         <radialGradient id={`${id}-halo`}><stop stopColor="#ff8a2a" stopOpacity=".45" /><stop offset="1" stopColor="#ff8a2a" stopOpacity="0" /></radialGradient>
       </defs>
-      <ellipse className="halloween-pumpkin-light" cx="100" cy="112" rx="96" ry="46" fill={`url(#${id}-halo)`} />
+      <ellipse cx="100" cy="112" rx="96" ry="46" fill={`url(#${id}-halo)`} />
       <ellipse cx="118" cy="144" rx="112" ry="6" fill="#000" opacity=".35" />
       <g>
         <path d="M80 52 Q78 40 86 32" stroke="#5b3b1c" strokeWidth="7" strokeLinecap="round" />
@@ -334,7 +334,7 @@ function Pumpkins() {
         <path d="M62 56 Q50 98 62 140 M98 56 Q110 98 98 140" stroke="#b9480c" strokeOpacity=".5" strokeWidth="2" />
         <path d="M84 48 Q100 30 112 42 Q98 50 84 48Z" fill="#4f7a3a" />
         <path d="M88 44 q14 -4 13 8 q-1 8 -9 5" stroke="#4f7a3a" strokeWidth="2" strokeLinecap="round" />
-        <g className="halloween-pumpkin-light" fill={`url(#${id}-candle)`}>
+        <g fill={`url(#${id}-candle)`}>
           <path d="M52 92 Q61 76 70 92 Q61 86 52 92Z" />
           <path d="M90 92 Q99 76 108 92 Q99 86 90 92Z" />
           <path d="M56 104 Q80 132 104 104 Q80 116 56 104Z" />
@@ -348,7 +348,7 @@ function Pumpkins() {
         <ellipse cx="190" cy="120" rx="20" ry="24" fill={skin} />
         <ellipse cx="175" cy="118" rx="22" ry="26" fill={skin} />
         <path d="M166 96 Q160 119 166 143 M184 96 Q190 119 184 143" stroke="#b9480c" strokeOpacity=".5" strokeWidth="1.5" />
-        <g className="halloween-pumpkin-light" fill="#ffd98a">
+        <g fill="#ffd98a">
           <circle cx="167" cy="116" r="4" />
           <circle cx="183" cy="116" r="4" />
           <path d="M169 125 Q175 132 181 125" stroke="#ffd98a" strokeWidth="3" strokeLinecap="round" fill="none" />
@@ -453,20 +453,31 @@ function Nightscape() {
 function Flashlight() {
   useEffect(() => {
     let light = null;
-    const onMove = (event) => {
-      if (event.pointerType !== "mouse") return;
+    let point = null;
+    let frame = null;
+    // One read + one write per frame, however fast pointermove fires.
+    const update = () => {
+      frame = null;
       if (!light?.isConnected) light = document.querySelector(".halloween-flashlight");
       if (!light) return;
       const rect = light.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
+      const x = point.x - rect.left;
+      const y = point.y - rect.top;
       if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
       light.classList.add("is-tracking");
       light.style.setProperty("--mx", `${x}px`);
       light.style.setProperty("--my", `${y}px`);
     };
+    const onMove = (event) => {
+      if (event.pointerType !== "mouse") return;
+      point = { x: event.clientX, y: event.clientY };
+      if (frame === null) frame = requestAnimationFrame(update);
+    };
     window.addEventListener("pointermove", onMove, { passive: true });
-    return () => window.removeEventListener("pointermove", onMove);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
   }, []);
   return null;
 }

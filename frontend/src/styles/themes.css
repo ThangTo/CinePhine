@@ -614,7 +614,6 @@ html[data-site-theme="christmas"] .site-header-logo {
 }
 .halloween-web--left { left: 0; }
 .halloween-web--right { right: 0; transform: scaleX(-1); }
-.halloween-web-dew { animation: halloween-dew 3.6s ease-in-out infinite alternate; }
 
 .halloween-spider {
   position: absolute;
@@ -715,8 +714,9 @@ html[data-site-theme="christmas"] .site-header-logo {
   transform: scaleX(var(--ghost-face, 1));
   transition: transform .25s ease;
   filter: drop-shadow(0 0 8px rgb(255 166 92 / 35%));
+  /* Bob on the svg box itself (composited), not on a <g> inside (repaints the svg every frame). */
+  animation: halloween-ghost-bob 1.3s ease-in-out infinite alternate;
 }
-.halloween-ghost-bob { animation: ghost-float 1.3s ease-in-out infinite alternate; }
 .ghost--scared { animation: ghost-shake .3s linear infinite; }
 .ghost--boo { transform-box: fill-box; transform-origin: center bottom; animation: ghost-pop .35s cubic-bezier(.2, 1.6, .4, 1); }
 .halloween-ghost-bubble {
@@ -747,7 +747,9 @@ html[data-site-theme="christmas"] .site-header-logo {
   overflow: visible;
   filter: drop-shadow(0 0 1.5px rgb(143 107 214 / 90%)) drop-shadow(0 6px 10px rgb(0 0 0 / 40%));
 }
-.halloween-cat-tail { transform-box: view-box; transform-origin: 64px 88px; animation: halloween-tail 2.8s ease-in-out infinite alternate; }
+.halloween-cat-tail { transform-box: view-box; transform-origin: 64px 88px; }
+/* Wag only on hover: an always-on in-svg sway repaints the cat (and its 2 drop-shadows) on every page. */
+.chatbot-cat-toggle:hover .halloween-cat-tail { animation: halloween-tail .5s ease-in-out infinite alternate; }
 .halloween-cat-blink { animation: halloween-blink 5.2s linear infinite; }
 
 /* VHS tape glitch on movie card hover. */
@@ -760,9 +762,8 @@ html[data-site-theme="christmas"] .site-header-logo {
     pointer-events: none;
     opacity: 0;
     transition: opacity .2s ease;
-    background:
-      linear-gradient(transparent 46%, rgb(255 255 255 / 9%) 48% 52%, transparent 54%) 0 100% / 100% 300% no-repeat,
-      repeating-linear-gradient(rgb(0 0 0 / 26%) 0 1px, transparent 1px 3px);
+    /* ponytail: static scanlines; the rolling tracking band animated background-position = full-card repaint per frame. */
+    background: repeating-linear-gradient(rgb(0 0 0 / 26%) 0 1px, transparent 1px 3px);
     box-shadow: inset 3px 0 rgb(255 70 120 / 22%), inset -3px 0 rgb(80 220 255 / 22%);
   }
   html[data-site-theme="halloween"] [data-movie-id] > .relative::before {
@@ -782,7 +783,7 @@ html[data-site-theme="christmas"] .site-header-logo {
   }
   html[data-site-theme="halloween"] [data-movie-id]:hover > .relative { animation: halloween-vhs-jitter .42s steps(2, end); }
   html[data-site-theme="halloween"] [data-movie-id]:hover > .relative::before { opacity: 1; }
-  html[data-site-theme="halloween"] [data-movie-id]:hover > .relative::after { opacity: 1; animation: halloween-vhs-track 1.6s linear infinite; }
+  html[data-site-theme="halloween"] [data-movie-id]:hover > .relative::after { opacity: 1; }
   html[data-site-theme="halloween"] [data-movie-id]:hover > .relative img { filter: saturate(1.25) contrast(1.08); }
 }
 
@@ -849,7 +850,9 @@ html[data-site-theme="halloween"] .site-avatar[data-rank]::before {
 html[data-site-theme="halloween"] .site-avatar[data-rank="1"] {
   container-type: inline-size;
   background: transparent !important;
-  animation: halloween-candle 2.2s ease-in-out infinite !important;
+  /* Static glow; the flicker lives in the opacity-animated inner glow and grin (filter keyframes repaint). */
+  filter: drop-shadow(0 0 6px rgb(249 115 22 / 75%));
+  animation: none !important;
 }
 html[data-site-theme="halloween"] .site-avatar[data-rank="1"] > :first-child {
   position: relative;
@@ -904,7 +907,7 @@ html[data-site-theme="halloween"] .site-avatar-fx::before {
   filter: drop-shadow(0 0 3px rgb(251 191 36 / 90%));
   animation: halloween-flicker 1.7s ease-in-out infinite;
 }
-/* Embers: three dot layers with different tile heights, each scrolled one tile per loop = different speeds, seamless. */
+/* Embers: three dots rising and fading together (transform + opacity, same loop as the #3 cauldron bubbles). */
 html[data-site-theme="halloween"] .site-avatar-fx::after {
   content: "";
   position: absolute;
@@ -914,11 +917,10 @@ html[data-site-theme="halloween"] .site-avatar-fx::after {
   width: 60%;
   height: 48%;
   background:
-    radial-gradient(circle at 28% 50%, #fde68a 0 2.6cqw, #0000 4cqw) 0 0 / 100% 22cqw,
-    radial-gradient(circle at 72% 50%, #fb923c 0 3cqw, #0000 4.6cqw) 0 0 / 100% 31cqw,
-    radial-gradient(circle at 50% 50%, #fdba74 0 2.2cqw, #0000 3.6cqw) 0 0 / 100% 40cqw;
-  mask: linear-gradient(to top, #0000, #000 25%, #000 45%, #0000);
-  animation: halloween-embers 2.8s linear infinite;
+    radial-gradient(circle at 28% 75%, #fde68a 0 2.6cqw, #0000 4cqw),
+    radial-gradient(circle at 72% 50%, #fb923c 0 3cqw, #0000 4.6cqw),
+    radial-gradient(circle at 50% 25%, #fdba74 0 2.2cqw, #0000 3.6cqw);
+  animation: halloween-bubble 2.8s ease-in infinite;
 }
 /* Too small for the face and embers: just center the photo in the pumpkin. */
 @container (max-width: 47.98px) {
@@ -979,10 +981,19 @@ html[data-site-theme="halloween"] .site-leaderboard::after {
   pointer-events: none;
 }
 html[data-site-theme="halloween"] .site-leaderboard-glow { background-color: rgb(168 85 247 / 14%); }
-/* Candy-corn stripes. A 45deg tile only seams cleanly with 2 stripe periods per tile, hence 6 stops. */
+/* Candy-corn stripes. A 45deg tile only seams cleanly with 2 stripe periods per tile, hence 6 stops.
+   The stripes sit on a pseudo one tile wider than the bar and slide by transform (no repaint per frame). */
 html[data-site-theme="halloween"] .site-leaderboard-bar {
-  background: linear-gradient(45deg, #f97316 16.66%, #f59e0b 0 33.33%, #fed7aa 0 50%, #f97316 0 66.66%, #f59e0b 0 83.33%, #fed7aa 0) 0 0 / 30px 30px;
+  position: relative;
+  overflow: hidden;
+  background: #f97316;
   box-shadow: 0 0 10px rgb(249 115 22 / 35%);
+}
+html[data-site-theme="halloween"] .site-leaderboard-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 -30px;
+  background: linear-gradient(45deg, #f97316 16.66%, #f59e0b 0 33.33%, #fed7aa 0 50%, #f97316 0 66.66%, #f59e0b 0 83.33%, #fed7aa 0) 0 0 / 30px 30px;
   animation: halloween-candy-stripes 2.4s linear infinite;
 }
 /* Hover a rank card: a spider drops on its thread (background-position slide, clipped by the pseudo box). */
@@ -1024,6 +1035,8 @@ html[data-site-theme="halloween"] .halloween-nightscape {
   z-index: -1;
   pointer-events: none;
   background: linear-gradient(to top, rgb(255 122 26 / 7%), transparent 55%);
+  /* Skip the stars/manor/bats while the footer is offscreen (most of the time). */
+  content-visibility: auto;
 }
 html[data-site-theme="halloween"] .halloween-nightscape::before {
   content: "";
@@ -1087,7 +1100,6 @@ html[data-site-theme="halloween"] .halloween-flashlight::before {
 html[data-site-theme="halloween"] .halloween-flashlight.is-tracking::before {
   animation: none;
   transform: translate(var(--mx), var(--my));
-  transition: transform .12s ease-out;
 }
 
 .halloween-treat {
@@ -1465,14 +1477,13 @@ html[data-site-theme="halloween"] .halloween-flashlight.is-tracking::before {
   overflow: visible;
   filter: drop-shadow(0 6px 10px rgb(0 0 0 / 30%));
 }
-.halloween-pumpkin-light { animation: halloween-flicker 3.4s ease-in-out infinite; }
+/* In-svg, but idle 82% of the loop (like a blink), so it rarely repaints. */
 .halloween-pumpkin-hop {
   transform-box: fill-box;
   transform-origin: 50% 100%;
   animation: halloween-hop 7s ease-in-out infinite;
 }
 
-@keyframes halloween-flicker { 0%, 52%, 100% { opacity: 1; } 18%, 74% { opacity: .84; } 22% { opacity: .96; } 47% { opacity: .76; } }
 @keyframes halloween-hop {
   0%, 78%, 96%, 100% { transform: none; }
   82% { transform: scale(1.06, .92); }
@@ -1524,26 +1535,19 @@ html[data-site-theme="halloween"] .halloween-flashlight.is-tracking::before {
 @keyframes halloween-peek { 0%, 62%, 100% { opacity: 0; } 68%, 92% { opacity: .9; } }
 @keyframes halloween-blink { 0%, 44%, 48%, 100% { transform: scaleY(1); } 46% { transform: scaleY(.1); } }
 @keyframes halloween-tail { from { transform: rotate(-10deg); } to { transform: rotate(12deg); } }
-@keyframes halloween-vhs-track { from { background-position: 0 100%, 0 0; } to { background-position: 0 0, 0 0; } }
 @keyframes halloween-vhs-jitter { 0%, 100% { translate: 0 0; } 25% { translate: -2px 0; } 50% { translate: 2px 1px; } 75% { translate: -1px 0; } }
 @keyframes ghost-float { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+@keyframes halloween-ghost-bob { to { translate: 0 -4px; } }
 @keyframes ghost-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
 @keyframes ghost-pop { from { transform: scale(.6); } to { transform: scale(1); } }
 @keyframes ghost-reel { to { transform: rotate(360deg); } }
 @keyframes ghost-shadow { from { transform: scaleX(1); opacity: .45; } to { transform: scaleX(.75); opacity: .25; } }
 @keyframes halloween-wing-flap { to { transform: scale(1.04, .86); } }
-@keyframes halloween-candle {
-  0%, 100% { filter: drop-shadow(0 0 5px rgb(249 115 22 / 75%)); }
-  30% { filter: drop-shadow(0 0 9px rgb(251 146 60 / 95%)); }
-  55% { filter: drop-shadow(0 0 3px rgb(234 88 12 / 55%)); }
-  80% { filter: drop-shadow(0 0 8px rgb(249 115 22 / 85%)); }
-}
 @keyframes halloween-bubble { 0% { transform: translateY(20%); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-50%); opacity: 0; } }
-@keyframes halloween-candy-stripes { to { background-position: 30px 0; } }
+@keyframes halloween-candy-stripes { to { transform: translateX(30px); } }
 @keyframes halloween-bat-cross { from { transform: translate(-30px, 14px); } to { transform: translate(260px, -18px); } }
 @keyframes halloween-stem-sway { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
 @keyframes halloween-flicker { 0%, 100% { opacity: .85; } 20% { opacity: 1; } 35% { opacity: .6; } 50% { opacity: .95; } 70% { opacity: .7; } }
-@keyframes halloween-embers { to { background-position: 0 -22cqw, 0 -31cqw, 0 -40cqw; } }
 @media (max-width: 767px) {
   .halloween-web { top: 56px; width: 104px; }
   .halloween-spider { top: 56px; right: 44px; }
@@ -1571,23 +1575,21 @@ html[data-site-theme="halloween"] .halloween-flashlight.is-tracking::before {
   .halloween-fortune-movie, .is-dai-cat .halloween-fortune-tier span,
   .halloween-bat, .halloween-manor-lights, .halloween-treat-tip, .halloween-treat-menu, .halloween-treat-note, .halloween-boo,
   .chatbot-cat-toggle:hover .halloween-cat,
-  .halloween-pumpkin-light, .halloween-pumpkin-hop,
-  .halloween-spider, .halloween-web-dew, .halloween-fog i, .halloween-eyes-blink, .halloween-ghost-bob,
+  .halloween-pumpkin-hop,
+  .halloween-spider, .halloween-fog i, .halloween-eyes-blink, .halloween-ghost-svg,
   .ghost, .ghost-eyes, .halloween-cat-tail, .halloween-cat-blink, .halloween-ghost-bubble { animation: none; }
   .halloween-eyes { animation: none; opacity: .8; }
   .halloween-pupils, .halloween-cat-pupils { transition: none; }
-  html[data-site-theme="halloween"] [data-movie-id] > .relative,
-  html[data-site-theme="halloween"] [data-movie-id] > .relative::after { animation: none !important; }
+  html[data-site-theme="halloween"] [data-movie-id] > .relative { animation: none !important; }
   .halloween-moon-bat,
   html[data-site-theme="halloween"] .site-avatar-ghost,
-  html[data-site-theme="halloween"] .site-leaderboard-bar,
+  html[data-site-theme="halloween"] .site-leaderboard-bar::before,
   html[data-site-theme="halloween"] .site-avatar[data-costume="3"]::before,
   html[data-site-theme="halloween"] .site-avatar[data-rank="2"]::before,
   html[data-site-theme="halloween"] .site-avatar[data-rank="3"]::after,
   html[data-site-theme="halloween"] .site-avatar[data-rank="1"]::before,
   html[data-site-theme="halloween"] .site-avatar[data-rank="1"] > :first-child::after,
   html[data-site-theme="halloween"] .site-avatar-fx::before { animation: none; }
-  html[data-site-theme="halloween"] .site-avatar[data-rank="1"] { animation: none !important; }
   html[data-site-theme="halloween"] .site-avatar-fx::after { display: none; }
   html[data-site-theme="halloween"] .site-leaderboard-card::before { transition: none; }
 }

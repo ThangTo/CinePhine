@@ -69,10 +69,13 @@ const MagicFlowBackground = () => {
         }
       }
       draw() {
-        ctx.globalAlpha = this.opacity;
-        ctx.shadowBlur = 8; // Tạo hiệu ứng phát sáng mờ (glow)
-        ctx.shadowColor = this.color;
+        // Glow = faint wide dot under the core (shadowBlur runs a blur pass per particle every frame)
         ctx.fillStyle = this.color;
+        ctx.globalAlpha = this.opacity * 0.25;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = this.opacity;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
@@ -96,10 +99,16 @@ const MagicFlowBackground = () => {
       });
       animationFrameId = requestAnimationFrame(animate);
     };
-    animate();
+    // Run only while on screen; observe() fires once right away, so this also starts the loop.
+    const observer = new IntersectionObserver(([entry]) => {
+      cancelAnimationFrame(animationFrameId);
+      if (entry.isIntersecting) animationFrameId = requestAnimationFrame(animate);
+    });
+    observer.observe(canvas);
 
     return () => {
       window.removeEventListener("resize", resize);
+      observer.disconnect();
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
