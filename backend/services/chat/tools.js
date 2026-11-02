@@ -31,7 +31,11 @@ const TOOLS = [
     'search_movies',
     'Tìm phim theo tên/từ khóa, theo diễn viên/đạo diễn (person), hoặc lọc để gợi ý (bỏ trống query): thể loại, quốc gia, loại phim, năm, thời lượng, độ tuổi, điểm. Khi lọc, phim người dùng đã xem hoặc đã được gợi ý trong cuộc trò chuyện tự bị loại.',
     {
-      query: { type: 'string', description: 'Tên phim hoặc từ khóa (tên người thì dùng person); bỏ trống nếu chỉ lọc/gợi ý' },
+      query: { type: 'string', description: 'Tên phim cụ thể (tên người thì dùng person, chủ đề thì dùng theme); bỏ trống nếu chỉ lọc/gợi ý' },
+      theme: {
+        type: 'string',
+        description: 'Chủ đề/nội dung không có trong thể loại (zombie, ma cà rồng, du hành thời gian, trả thù...). Ghi các cách gọi cách nhau dấu phẩy, kèm từ tiếng Việt, vd "zombie, xác sống, thây ma"',
+      },
       person: {
         type: 'string',
         description: 'Diễn viên hoặc đạo diễn. Ghi kèm tên quốc tế/cách viết khác của CÙNG người đó, cách nhau dấu phẩy, vd "Thành Long, Jackie Chan"',
@@ -193,6 +197,8 @@ async function searchFilters(args, movieService) {
   // Spellings of one person; 2+ letters keeps a stray "-" from matching every cast list.
   const people = String(args.person || '').split(',').map((s) => s.trim().slice(0, 60)).filter((s) => /\p{L}{2}/u.test(s));
   if (people.length) filters.people = people.slice(0, 4);
+  const themes = String(args.theme || '').split(',').map((s) => s.trim().slice(0, 40)).filter((s) => /\p{L}{2}/u.test(s));
+  if (themes.length && !people.length) filters.themes = themes.slice(0, 4);
   if (args.type) filters.type = args.type;
   if (parseInt(args.year, 10)) filters.year = parseInt(args.year, 10);
   const maxAge = parseInt(args.max_age, 10);
@@ -225,13 +231,13 @@ const handlers = {
     const { filters, unknownFilters } = await searchFilters(args, deps.movieService);
     const extra = unknownFilters.length ? { unknownFilters } : {};
     // Keyword search: the user asked for a specific title, return it even if already watched.
-    if (args.query && !filters.people) {
+    if (args.query && !filters.people && !filters.themes) {
       // Over-fetch: search/getAll do not drop hidden movies, toMovieCard does.
       const { data = [] } = await deps.movieService.search(args.query, { ...filters, limit: MAX_RESULTS * 2 });
       return moviesResult(data, extra, { count: countOf(args) });
     }
     const [{ data = [] }, { skip, block }] = await Promise.all([
-      deps.movieService.search('', { ...filters, limit: filters.people ? PERSON_POOL : POOL_SIZE }),
+      deps.movieService.search((filters.themes || []).join(' '), { ...filters, limit: filters.people ? PERSON_POOL : POOL_SIZE }),
       seenIds(userId, deps, shownIds),
     ]);
     const maxMinutes = parseInt(args.max_minutes, 10);
@@ -241,6 +247,12 @@ const handlers = {
     if (args.sort === 'top_rated') list = [...list].sort((a, b) => (b.tmdb?.vote_average || 0) - (a.tmdb?.vote_average || 0));
     // A person's films: best known first instead of newest first
     else if (filters.people && !args.sort) list = [...list].sort((a, b) => (b.tmdb?.vote_count || 0) - (a.tmdb?.vote_count || 0));
+    // A theme: synopsis relevance order, nudged by popularity (many titles have no TMDB votes,
+    // so votes alone would bury them). ponytail: rank - 2*log10(votes); tune the 2 if hits drift.
+    else if (filters.themes && !args.sort) {
+      const rank = new Map(list.map((m, i) => [m, i - 2 * Math.log10(1 + (m.tmdb?.vote_count || 0))]));
+      list = [...list].sort((a, b) => rank.get(a) - rank.get(b));
+    }
     return { ...moviesResult(list, extra, { skip, block, count: countOf(args) }), nextSteps: NEXT_STEPS };
   },
 

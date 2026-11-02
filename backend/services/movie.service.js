@@ -1110,39 +1110,39 @@ const search = async (q, options = {}) => {
       // nhưng Atlas Search term mặc định là match exact.
       // Để support filter mảng genres: Phim phải có genre A HOẶC genre B
       const genreShoulds = filters.genres.map((g) => ({
-        term: { path: 'categories.slug', value: g },
+        equals: { path: 'categories.slug', value: g },
       }));
       mustConditions.push({
         compound: { should: genreShoulds, minimumShouldMatch: 1 },
       });
     } else if (filters.genre) {
-      mustConditions.push({ term: { path: 'categories.slug', value: filters.genre } });
+      mustConditions.push({ equals: { path: 'categories.slug', value: filters.genre } });
     }
 
     // 1.2 Filter Countries (Slug - Token)
     if (filters.countries && Array.isArray(filters.countries) && filters.countries.length > 0) {
       const countryShoulds = filters.countries.map((c) => ({
-        term: { path: 'country.slug', value: c },
+        equals: { path: 'country.slug', value: c },
       }));
       mustConditions.push({
         compound: { should: countryShoulds, minimumShouldMatch: 1 },
       });
     } else if (filters.country) {
-      mustConditions.push({ term: { path: 'country.slug', value: filters.country } });
+      mustConditions.push({ equals: { path: 'country.slug', value: filters.country } });
     }
 
     // 1.3 Filter Type, Status, Quality, AgeRating (Token)
-    if (filters.type) mustConditions.push({ term: { path: 'type', value: filters.type } });
-    if (filters.status) mustConditions.push({ term: { path: 'status', value: filters.status } });
-    if (filters.quality) mustConditions.push({ term: { path: 'quality', value: filters.quality } });
+    if (filters.type) mustConditions.push({ equals: { path: 'type', value: filters.type } });
+    if (filters.status) mustConditions.push({ equals: { path: 'status', value: filters.status } });
+    if (filters.quality) mustConditions.push({ equals: { path: 'quality', value: filters.quality } });
     if (filters.ageRating) {
       if (Array.isArray(filters.ageRating)) {
         const ratingShoulds = filters.ageRating.map((r) => ({
-          term: { path: 'age_rating', value: r },
+          equals: { path: 'age_rating', value: r },
         }));
         mustConditions.push({ compound: { should: ratingShoulds, minimumShouldMatch: 1 } });
       } else {
-        mustConditions.push({ term: { path: 'age_rating', value: filters.ageRating } });
+        mustConditions.push({ equals: { path: 'age_rating', value: filters.ageRating } });
       }
     }
 
@@ -1166,6 +1166,11 @@ const search = async (q, options = {}) => {
         mustConditions.push({ range: { path: 'totalEpisodes', gt: 1 } });
       }
     }
+
+    // 1.6 Themes (chat): the synopsis must contain one of the phrases; ranked by that match alone
+    // so a title that merely shares a word ("Ma Oi" for "thay ma") does not outrank real hits.
+    const themed = Array.isArray(filters.themes) && filters.themes.length > 0;
+    if (themed) mustConditions.push({ phrase: { query: filters.themes, path: 'content' } });
 
     // --- BƯỚC 2: Xây dựng điều kiện Tìm kiếm (SHOULD) ---
     // Logic thông minh để loại bỏ kết quả rác
@@ -1233,8 +1238,8 @@ const search = async (q, options = {}) => {
           index: 'default',
           compound: {
             must: mustConditions, // Phải thỏa mãn Filter
-            should: shouldConditions, // Nên thỏa mãn từ khóa
-            minimumShouldMatch: 1, // Bắt buộc match ít nhất 1 điều kiện should (Keyword)
+            // Nên thỏa mãn từ khóa (bắt buộc ít nhất 1); theme search scores on the synopsis only
+            ...(themed ? {} : { should: shouldConditions, minimumShouldMatch: 1 }),
           },
           count: { type: 'total' }, // Đếm tổng số kết quả
         },
@@ -1307,6 +1312,10 @@ const search = async (q, options = {}) => {
           lang: 1,
           type: 1,
           category: 1,
+          categories: 1,
+          tmdb: 1,
+          time: 1,
+          status: 1,
           score: 1,
           isHidden: 1,
           // Giữ lại meta count để return về controller

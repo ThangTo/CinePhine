@@ -267,6 +267,22 @@ test('search_movies by person: filters cast/crew instead of title search, best k
   assert.deepEqual(out.movies.map((m) => m.id), ['hit', 'new']);
 });
 
+test('search_movies by theme: phrase filter on synopsis, relevance nudged by popularity', async () => {
+  const calls = {};
+  const movieService = {
+    ...fakeMovieService(calls),
+    search: async (q, opts) => {
+      calls.search = { q, opts };
+      return { data: [movie('niche', { tmdb: { vote_count: 30 } }), movie('busan', { tmdb: { vote_count: 8000 } })] };
+    },
+  };
+  const deps = { movieService, models: userModels() };
+  const out = await executeTool('search_movies', { query: 'zombie', theme: 'zombie, xác sống', country: 'Hàn Quốc' }, { deps });
+  assert.equal(calls.search.q, 'zombie xác sống');
+  assert.deepEqual(calls.search.opts.themes, ['zombie', 'xác sống']);
+  assert.deepEqual(out.movies.map((m) => m.id), ['busan', 'niche']);
+});
+
 test('suggest_replies emits a suggestions event; shown movie ids persist on the session', async () => {
   const session = { messages: [], shownMovieIds: ['old'], addMessage: async () => {} };
   const events = [];
